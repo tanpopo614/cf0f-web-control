@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Serial TMR/LED/Buzzer/RHT/背光/LCD控制器</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 使用 Inter 字體 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 2rem; 
+            padding-bottom: 2rem;
+        }
+        .container {
+            width: 95%;
+            /* 保持緊湊的最大寬度 */
+            max-width: 600px; 
+        }
+        /* 確保右側欄位的兩個元件在兩欄佈局時能夠良好對齊 */
+        .right-column-controls > div {
+            min-height: fit-content; 
+        }
+        /* 隱藏的模態視窗背景 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+            width: 400px;
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-overlay.open .modal-content {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container bg-white shadow-xl rounded-xl p-5 md:p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-5 border-b pb-2">
+            Web Serial 設備控制台
+        </h1>
+
+        <!-- 狀態與連接控制 -->
+        <div class="mb-6 space-y-3">
+            <div id="status" class="p-3 rounded-lg text-sm font-medium transition-all duration-300 bg-yellow-100 text-yellow-700">
+                狀態：尚未連接。請注意，此功能需在 Chrome/Edge 瀏覽器中執行。
+            </div>
+
+            <button id="connectButton"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-300 disabled:bg-gray-400">
+                連接序列埠 (COM Port)
+            </button>
+        </div>
+
+        <!-- 兩欄式控制區塊 (TMR / LED + BUZZER) -->
+        <div class="md:flex md:space-x-4 mb-6">
+            
+            <!-- 左欄: TMR 讀取指令控制 (手機 100%, 平板/桌面 50%) -->
+            <div class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
+                <h2 class="text-lg font-semibold text-gray-700">TMR 讀取指令控制 (TMR)</h2>
+                
+                <!-- TMR Real-time Status -->
+                <div class="p-3 bg-gray-100 rounded-lg text-xs border border-gray-300 space-y-1">
+                    <p class="font-medium text-gray-700 border-b pb-1 mb-1">即時數據 (timestamp ADC1 ADC2 sensr_d dial_d)</p>
+                    <p class="flex justify-between">
+                        <span class="text-gray-600 font-medium">ADC1 (第 2 參):</span>
+                        <span id="tmrADC1Display" class="font-bold text-blue-700">--</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="text-gray-600 font-medium">ADC2 (第 3 參):</span>
+                        <span id="tmrADC2Display" class="font-bold text-blue-700">--</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="text-gray-600 font-medium">Sensor D (第 4 參):</span>
+                        <span id="tmrSensorDDisplay" class="font-bold text-blue-700">--</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="text-gray-600 font-medium">Dial D (第 5 參):</span>
+                        <span id="tmrDialDDisplay" class="font-bold text-blue-700">--</span>
+                    </p>
+                </div>
+
+                <!-- 參數設定 -->
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label for="intervalInput" class="block text-xs font-medium text-gray-700 mb-1">取樣間隔 (us)</label>
+                        <input type="number" id="intervalInput" value="1000" min="1"
+                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="微秒 (e.g., 1000)">
+                    </div>
+                    <div>
+                        <label for="numSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (0=無限)</label>
+                        <input type="number" id="numSamplesInput" value="0" min="0"
+                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="樣本數 (0 為無限)">
+                    </div>
+                </div>
+
+                <!-- 動作按鈕 -->
+                <div class="flex space-x-3 pt-1">
+                    <button id="startReadingButton" disabled
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        開始讀取
+                    </button>
+                    <button id="stopReadingButton" disabled
+                        class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        中斷 (Ctrl-C)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 右欄: LED + Buzzer 控制區塊 (手機 100%, 平板/桌面 50%) -->
+            <div class="w-full md:w-1/2 space-y-4 right-column-controls">
+                
+                <!-- LED 控制區塊 -->
+                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-yellow-50">
+                    <h2 class="text-lg font-semibold text-gray-700">Amber LED 控制</h2>
+                    <div class="flex space-x-3 pt-1">
+                        <button id="ledOnButton" disabled
+                            class="flex-grow bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            開啟 (fct-led amber on)
+                        </button>
+                        <button id="ledOffButton" disabled
+                            class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            關閉 (fct-led amber off)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Buzzer 控制區塊 -->
+                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-purple-50">
+                    <h2 class="text-lg font-semibold text-gray-700">Buzzer/蜂鳴器控制</h2>
+                    
+                    <!-- 參數設定 -->
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label for="freqInput" class="block text-xs font-medium text-gray-700 mb-1">頻率 (Hz)</label>
+                            <input type="number" id="freqInput" value="2000" min="1"
+                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="dutyInput" class="block text-xs font-medium text-gray-700 mb-1">佔空比 (0-255)</label>
+                            <input type="number" id="dutyInput" value="128" min="0" max="255"
+                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                    </div>
+
+                    <!-- 動作按鈕 -->
+                    <div class="flex space-x-3 pt-1">
+                        <button id="buzzerStartButton" disabled
+                            class="flex-grow bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            啟動 (fct-piezo start)
+                        </button>
+                        <button id="buzzerStopButton" disabled
+                            class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            停止 (fct-piezo stop)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- RHT 溫濕度感測器讀取 (兩欄佈局) -->
+        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">RHT 溫濕度感測器讀取</h2>
+            
+            <div class="md:flex md:space-x-4">
+                <!-- RHT 讀取按鈕 (50% width on md+) -->
+                <div class="w-full md:w-1/2 space-y-3 mb-4 md:mb-0">
+                    <button id="readTempButton" disabled
+                        class="w-full bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        讀取溫度 (rht 0 read t)
+                    </button>
+                    <button id="readRHTButton" disabled
+                        class="w-full bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        讀取溫濕度 (rht 1 read rht)
+                    </button>
+                </div>
+                
+                <!-- 結果顯示 (50% width on md+) -->
+                <div class="w-full md:w-1/2 mt-0 p-3 bg-white rounded-lg border border-blue-200 text-sm shadow-inner">
+                    <p class="font-medium text-gray-700 mb-1 border-b pb-1">最新讀數:</p>
+                    <p class="flex justify-between">
+                        <span class="text-gray-600">溫度:</span> 
+                        <span id="tempDisplay" class="font-bold text-sky-800">--</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="text-gray-600">濕度:</span>
+                        <span id="rhDisplay" class="font-bold text-teal-800">--</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 背光控制 (Backlight Control) -->
+        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
+            <h2 class="text-lg font-semibold text-gray-700">背光控制 (Backlight Control)</h2>
+            
+            <!-- On/Off Controls -->
+            <div class="flex space-x-3 pt-1">
+                <button id="blOnButton" disabled class="flex-grow bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    開啟 (fct-bl start)
+                </button>
+                <button id="blOffButton" disabled class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    關閉 (fct-bl stop)
+                </button>
+            </div>
+
+            <!-- Adjustment Controls -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- 亮度 (0-255) -->
+                <div>
+                    <label for="blBrightnessInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 (0-255)</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="blBrightnessInput" value="255" min="0" max="255" 
+                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        <button id="setBrightnessButton" disabled 
+                            class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                            設定
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 亮度 Nits (0-1000) -->
+                <div>
+                    <label for="blNitsInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 Nits (0-1000)</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="blNitsInput" value="500" min="0" max="1000" 
+                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        <button id="setNitsButton" disabled 
+                            class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                            設定
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 電流百分比 (0-100) -->
+                <div>
+                    <label for="blCurrentPercentInput" class="block text-xs font-medium text-gray-700 mb-1">電流百分比 (0-100%)</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="blCurrentPercentInput" value="100" min="0" max="100" 
+                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        <button id="setCurrentPercentButton" disabled 
+                            class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                            設定
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LCD 控制 (LCD Control) -->
+        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-green-50">
+            <h2 class="text-lg font-semibold text-gray-700">LCD 螢幕控制 (LCD Control)</h2>
+            
+            <!-- Start/Stop/Suspend/Resume Controls -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button id="lcdStartButton" disabled class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    啟動 (lcd start)
+                </button>
+                <button id="lcdStopButton" disabled class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    停止 (lcd stop)
+                </button>
+                <button id="lcdSuspendButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    暫停 (lcd suspend)
+                </button>
+                <button id="lcdResumeButton" disabled class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    恢復 (lcd resume)
+                </button>
+            </div>
+
+            <!-- Pattern and Color Command Controls -->
+            <div class="space-y-4 p-3 border border-green-200 rounded-lg bg-white shadow-inner">
+                <h3 class="text-md font-medium text-gray-700 border-b pb-1">顏色/圖案指令</h3>
+
+                <!-- 顏色輸入區 (R, G, B) -->
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- R Input -->
+                    <div>
+                        <label for="colorRInput" class="block text-xs font-medium text-red-600 mb-1">R (0-255)</label>
+                        <input type="number" id="colorRInput" value="255" min="0" max="255" 
+                            class="w-full p-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    </div>
+                    <!-- G Input -->
+                    <div>
+                        <label for="colorGInput" class="block text-xs font-medium text-green-600 mb-1">G (0-255)</label>
+                        <input type="number" id="colorGInput" value="255" min="0" max="255" 
+                            class="w-full p-2 border border-green-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <!-- B Input -->
+                    <div>
+                        <label for="colorBInput" class="block text-xs font-medium text-blue-600 mb-1">B (0-255)</label>
+                        <input type="number" id="colorBInput" value="255" min="0" max="255" 
+                            class="w-full p-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Hex 顯示與基本顏色指令 -->
+                <div class="mt-3">
+                    <p class="text-xs text-gray-600 mb-2">計算出的十六進制值: <span id="colorHexDisplay" class="font-mono font-bold text-lg text-gray-800">0xFFFFFF</span></p>
+                    <div class="flex space-x-3">
+                        <button id="lcdFillButton" disabled 
+                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            填滿顏色 (lcd fill)
+                        </button>
+                        <button id="lcdCrosshairButton" disabled 
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            十字線 (lcd crosshair)
+                        </button>
+                        <button id="lcdColorBarButton" disabled 
+                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            顏色條 (lcd color_bar)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Checker 圖案指令 (使用上述顏色，新增 Size 參數) -->
+                <div class="mt-4 pt-4 border-t border-green-200">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Checkerboard 圖案</h4>
+                    <div class="flex space-x-3">
+                        <div class="flex-1">
+                            <label for="checkerSizeInput" class="block text-xs font-medium text-gray-700 mb-1">棋盤格大小 (size)</label>
+                            <input type="number" id="checkerSizeInput" value="10" min="1"
+                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        </div>
+                        <button id="lcdCheckerButton" disabled 
+                            class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-auto">
+                            繪製棋盤格 (lcd checker)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 接收紀錄 -->
+        <div class="p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold text-gray-700 mb-2">接收到的資料紀錄</h2>
+            <div id="dataLog" class="h-40 overflow-y-auto bg-gray-800 text-green-400 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap">
+                等待連接...
+            </div>
+            <!-- 紀錄控制按鈕 -->
+            <div class="mt-3 flex space-x-3">
+                <button id="clearLogButton" class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300">
+                    清除紀錄
+                </button>
+                <button id="saveLogButton" class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300">
+                    儲存紀錄 (.txt)
+                </button>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- 自定義錯誤/警告提示視窗 (Modal) -->
+    <div id="customModal" class="modal-overlay hidden opacity-0 pointer-events-none" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 id="modalTitle" class="text-xl font-bold text-red-600"></h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <p id="modalMessage" class="text-gray-700 mb-6"></p>
+            <div class="text-right">
+                <button onclick="closeModal()" 
+                    class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 shadow-md">
+                    確認
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const statusElement = document.getElementById('status');
+        const connectButton = document.getElementById('connectButton');
+        const dataLog = document.getElementById('dataLog');
+        const clearLogButton = document.getElementById('clearLogButton');
+        const saveLogButton = document.getElementById('saveLogButton');
+        
+        // Modal Elements
+        const customModal = document.getElementById('customModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+
+        // TMR Control Elements
+        const intervalInput = document.getElementById('intervalInput');
+        const numSamplesInput = document.getElementById('numSamplesInput');
+        const startReadingButton = document.getElementById('startReadingButton');
+        const stopReadingButton = document.getElementById('stopReadingButton');
+        
+        // TMR Real-time Status Elements
+        const tmrADC1Display = document.getElementById('tmrADC1Display');
+        const tmrADC2Display = document.getElementById('tmrADC2Display');
+        const tmrSensorDDisplay = document.getElementById('tmrSensorDDisplay');
+        const tmrDialDDisplay = document.getElementById('tmrDialDDisplay');
+        
+        // LED Control Elements
+        const ledOnButton = document.getElementById('ledOnButton');
+        const ledOffButton = document.getElementById('ledOffButton');
+        
+        // Buzzer Control Elements
+        const freqInput = document.getElementById('freqInput');
+        const dutyInput = document.getElementById('dutyInput');
+        const buzzerStartButton = document.getElementById('buzzerStartButton');
+        const buzzerStopButton = document.getElementById('buzzerStopButton');
+        
+        // RHT Control Elements
+        const readTempButton = document.getElementById('readTempButton');
+        const readRHTButton = document.getElementById('readRHTButton');
+        const tempDisplay = document.getElementById('tempDisplay');
+        const rhDisplay = document.getElementById('rhDisplay');
+        
+        // Backlight Control Elements
+        const blOnButton = document.getElementById('blOnButton');
+        const blOffButton = document.getElementById('blOffButton');
+        const blBrightnessInput = document.getElementById('blBrightnessInput');
+        const setBrightnessButton = document.getElementById('setBrightnessButton');
+        const blNitsInput = document.getElementById('blNitsInput');
+        const setNitsButton = document.getElementById('setNitsButton');
+        const blCurrentPercentInput = document.getElementById('blCurrentPercentInput');
+        const setCurrentPercentButton = document.getElementById('setCurrentPercentButton');
+
+        // LCD Control Elements
+        const lcdStartButton = document.getElementById('lcdStartButton');
+        const lcdStopButton = document.getElementById('lcdStopButton');
+        const lcdSuspendButton = document.getElementById('lcdSuspendButton');
+        const lcdResumeButton = document.getElementById('lcdResumeButton');
+        const colorRInput = document.getElementById('colorRInput');
+        const colorGInput = document.getElementById('colorGInput');
+        const colorBInput = document.getElementById('colorBInput');
+        const colorHexDisplay = document.getElementById('colorHexDisplay');
+        const lcdFillButton = document.getElementById('lcdFillButton');
+        const lcdCrosshairButton = document.getElementById('lcdCrosshairButton');
+        const lcdColorBarButton = document.getElementById('lcdColorBarButton');
+        const checkerSizeInput = document.getElementById('checkerSizeInput');
+        const lcdCheckerButton = document.getElementById('lcdCheckerButton');
+
+
+        let port; 
+        let reader;
+        let keepReading = false;
+        let lineBuffer = ''; 
+
+        // === 效能優化相關變數 ===
+        let logBuffer = []; // 接收到的數據緩衝區
+        let batchTimer = null; // 批次處理計時器
+        const BATCH_INTERVAL = 100; // 批次更新間隔 (毫秒)
+        // ====================================
+
+        const decoder = new TextDecoder('utf-8');
+        
+        // --- Modal Control Functions ---
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            customModal.classList.remove('hidden');
+            // 使用 setTimeout 確保 opacity 轉換生效
+            setTimeout(() => {
+                customModal.classList.add('opacity-100', 'pointer-events-auto', 'open');
+            }, 10);
+        }
+
+        function closeModal() {
+            customModal.classList.remove('opacity-100', 'pointer-events-auto', 'open');
+            // 在動畫結束後隱藏 DOM
+            setTimeout(() => {
+                customModal.classList.add('hidden');
+            }, 300); 
+        }
+        
+        // --- Utility Functions ---
+
+        /**
+         * 將 RGB 數值轉換為 0xRRGGBB 格式的十六進制字串。
+         * 此函數現在只負責計算和顯示，不修改按鈕的 disabled 狀態。
+         * @param {number} r 紅色值 (0-255)
+         * @param {number} g 綠色值 (0-255)
+         * @param {number} b 藍色值 (0-255)
+         * @returns {string|null} 0xRRGGBB 格式的字串，或 null (如果輸入無效)。
+         */
+        function rgbToHexCommand(r, g, b) {
+            const R = parseInt(r);
+            const G = parseInt(g);
+            const B = parseInt(b);
+
+            const isInvalid = isNaN(R) || R < 0 || R > 255 ||
+                              isNaN(G) || G < 0 || G > 255 ||
+                              isNaN(B) || B < 0 || B > 255;
+            
+            if (isInvalid) {
+                return null;
+            }
+
+            // 將每個顏色分量轉換為兩位十六進制
+            const toHex = (c) => c.toString(16).padStart(2, '0');
+            
+            const hexR = toHex(R);
+            const hexG = toHex(G);
+            const hexB = toHex(B);
+
+            return `0x${hexR}${hexG}${hexB}`;
+        }
+        
+        /**
+         * 檢查並更新 RGB 輸入欄位的十六進制顯示值。
+         * 此函數現在只負責顯示，並返回顏色是否有效。
+         * @returns {string|null} 有效的 Hex 字串，或 null。
+         */
+        function updateHexDisplay() {
+            const R = colorRInput.value.trim();
+            const G = colorGInput.value.trim();
+            const B = colorBInput.value.trim();
+            
+            const hexValue = rgbToHexCommand(R, G, B);
+            
+            if (hexValue) {
+                colorHexDisplay.textContent = hexValue;
+                colorHexDisplay.style.color = `#${hexValue.substring(2)}`;
+                return hexValue;
+            } else {
+                colorHexDisplay.textContent = '--- 無效顏色 ---';
+                colorHexDisplay.style.color = 'red';
+                return null;
+            }
+        }
+        
+        /**
+         * 根據連線狀態和顏色輸入的有效性，更新 LCD 顏色相關按鈕的啟用狀態。
+         */
+        function updateLcdColorButtonsState() {
+            // 只有在 port 存在且連線時，才可能啟用按鈕
+            const isConnected = !!port;
+            const isColorValid = updateHexDisplay() !== null; 
+
+            // 如果未連接，則全部禁用
+            if (!isConnected) {
+                lcdFillButton.disabled = true;
+                lcdCrosshairButton.disabled = true;
+                lcdCheckerButton.disabled = true;
+                return;
+            }
+            
+            // 如果已連接，則根據顏色是否有效來決定是否啟用
+            lcdFillButton.disabled = !isColorValid;
+            lcdCrosshairButton.disabled = !isColorValid;
+            lcdCheckerButton.disabled = !isColorValid;
+        }
+
+        // --- Control Enable/Disable Functions ---
+
+        // Function 1: Disable all controls (Used ONLY when disconnecting)
+        function disableAllControls() {
+            startReadingButton.disabled = true;
+            stopReadingButton.disabled = true;
+            intervalInput.disabled = false;
+            numSamplesInput.disabled = false; 
+            ledOnButton.disabled = true;
+            ledOffButton.disabled = true;
+            freqInput.disabled = false;
+            dutyInput.disabled = false;
+            buzzerStartButton.disabled = true;
+            buzzerStopButton.disabled = true;
+            readTempButton.disabled = true;
+            readRHTButton.disabled = true;
+            
+            // Disable Backlight Controls
+            blOnButton.disabled = true;
+            blOffButton.disabled = true;
+            blBrightnessInput.disabled = false;
+            setBrightnessButton.disabled = true;
+            blNitsInput.disabled = false;
+            setNitsButton.disabled = true;
+            blCurrentPercentInput.disabled = false;
+            setCurrentPercentButton.disabled = true;
+            
+            // Disable LCD Controls
+            lcdStartButton.disabled = true;
+            lcdStopButton.disabled = true;
+            lcdSuspendButton.disabled = true;
+            lcdResumeButton.disabled = true;
+            lcdColorBarButton.disabled = true; // 無條件禁用
+            
+            // 顏色相關按鈕禁用（通過集中函數處理）
+            updateLcdColorButtonsState(); 
+            checkerSizeInput.disabled = false;
+        }
+
+        // Function 2: Enable controls after successful connection (Idle state)
+        function enableTmrStartControls() {
+            // TMR controls
+            startReadingButton.disabled = false;
+            stopReadingButton.disabled = true;
+            intervalInput.disabled = false;
+            numSamplesInput.disabled = false;
+            
+            // Re-enable ALL other controls
+            ledOnButton.disabled = false;
+            ledOffButton.disabled = false;
+            freqInput.disabled = false;
+            dutyInput.disabled = false;
+            buzzerStartButton.disabled = false;
+            buzzerStopButton.disabled = false;
+            readTempButton.disabled = false;
+            readRHTButton.disabled = false;
+            
+            // Enable Backlight Controls
+            blOnButton.disabled = false;
+            blOffButton.disabled = false;
+            setBrightnessButton.disabled = false;
+            setNitsButton.disabled = false;
+            setCurrentPercentButton.disabled = false;
+            
+            // Enable LCD Controls
+            lcdStartButton.disabled = false;
+            lcdStopButton.disabled = false;
+            lcdSuspendButton.disabled = false;
+            lcdResumeButton.disabled = false;
+            lcdColorBarButton.disabled = false; // 無顏色參數的按鈕無條件啟用
+            checkerSizeInput.disabled = false;
+
+            // 根據顏色輸入的有效性，啟用填滿、十字線和 Checker 按鈕
+            updateLcdColorButtonsState(); 
+
+            // Clear TMR specific displays
+            tmrADC1Display.textContent = '--';
+            tmrADC2Display.textContent = '--';
+            tmrSensorDDisplay.textContent = '--';
+            tmrDialDDisplay.textContent = '--';
+        }
+
+        // Function 3: Set controls when TMR is running (Active state)
+        function setTmrActiveControls() {
+            // TMR controls
+            startReadingButton.disabled = true;
+            stopReadingButton.disabled = false; // ONLY the stop button is active
+            intervalInput.disabled = true;
+            numSamplesInput.disabled = true;
+            
+            // Disable ALL other controls (TMR 鎖定)
+            ledOnButton.disabled = true;
+            ledOffButton.disabled = true;
+            buzzerStartButton.disabled = true;
+            buzzerStopButton.disabled = true;
+            readTempButton.disabled = true;
+            readRHTButton.disabled = true;
+
+            // Disable Backlight Controls
+            blOnButton.disabled = true;
+            blOffButton.disabled = true;
+            setBrightnessButton.disabled = true;
+            setNitsButton.disabled = true;
+            setCurrentPercentButton.disabled = true;
+            
+            // Disable LCD Controls
+            lcdStartButton.disabled = true;
+            lcdStopButton.disabled = true;
+            lcdSuspendButton.disabled = true;
+            lcdResumeButton.disabled = true;
+            lcdFillButton.disabled = true;
+            lcdCrosshairButton.disabled = true;
+            lcdColorBarButton.disabled = true;
+            lcdCheckerButton.disabled = true;
+            checkerSizeInput.disabled = true;
+        }
+
+        /**
+         * 處理 logBuffer 中的數據，並批量更新 DOM。
+         */
+        function processLogBatch() {
+            if (logBuffer.length > 0) {
+                const batchHtml = logBuffer.join('');
+                logBuffer = []; 
+
+                dataLog.innerHTML += batchHtml;
+                dataLog.scrollTop = dataLog.scrollHeight; 
+            }
+            
+            batchTimer = setTimeout(processLogBatch, BATCH_INTERVAL);
+        }
+        
+        // Function to update the connection status UI
+        function updateStatus(message, isConnected = false) {
+            statusElement.textContent = `狀態：${message}`;
+            if (isConnected) {
+                statusElement.classList.remove('bg-yellow-100', 'text-yellow-700');
+                statusElement.classList.add('bg-green-100', 'text-green-700');
+                connectButton.textContent = '已連接 (點擊斷開)';
+                
+                enableTmrStartControls();
+                if (!batchTimer) {
+                    batchTimer = setTimeout(processLogBatch, BATCH_INTERVAL);
+                }
+
+            } else {
+                statusElement.classList.remove('bg-green-100', 'text-green-700');
+                statusElement.classList.add('bg-yellow-100', 'text-yellow-700');
+                connectButton.textContent = '連接序列埠 (COM Port)';
+                
+                disableAllControls();
+                if (batchTimer) {
+                    clearTimeout(batchTimer);
+                    batchTimer = null;
+                }
+            }
+        }
+
+        // Function to log data in the log area
+        function logData(data, type = 'Received') {
+            if (type === 'Sent' || type === 'System') {
+                if (data === '\x03' && type === 'Sent') return;
+
+                const timestamp = new Date().toLocaleTimeString();
+                let logEntry;
+                
+                if (type === 'Sent') {
+                    logEntry = `<span class="text-yellow-400">[${timestamp}] Sent: </span>${data} (CRLF)\n`;
+                } else if (type === 'System') {
+                     logEntry = `<span class="text-blue-400">[${timestamp}] System: </span>${data}\n`;
+                }
+                
+                dataLog.innerHTML += logEntry;
+                dataLog.scrollTop = dataLog.scrollHeight; 
+
+            } else if (type === 'Received') {
+                logBuffer.push(`<span class="text-green-400">${data}</span>\n`);
+            }
+        }
+        
+        // Function to save the log content as a text file
+        function saveLog() {
+            const logContent = dataLog.textContent;
+            
+            if (logContent.trim() === '等待連接...' || logContent.trim() === '已清除紀錄。') {
+                logData('系統提示：紀錄區域沒有足夠的數據可以儲存。', 'System');
+                return;
+            }
+
+            const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+            a.download = `serial_log_${timestamp}.txt`;
+            a.href = url;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            logData(`紀錄已儲存為 serial_log_${timestamp}.txt`, 'System');
+        }
+
+        // Main function to read data continuously from the serial port
+        async function readSerial() {
+            if (!port || !port.readable) {
+                console.error("Port is not open or readable.");
+                return;
+            }
+
+            reader = port.readable.getReader();
+            keepReading = true;
+            lineBuffer = '';
+
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+
+                    if (done) {
+                        reader.releaseLock();
+                        break;
+                    }
+
+                    if (value) {
+                        lineBuffer += decoder.decode(value, { stream: true });
+                        let lineEndIndex;
+
+                        while ((lineEndIndex = lineBuffer.indexOf('\n')) !== -1) {
+                            let rawLine = lineBuffer.substring(0, lineEndIndex);
+                            lineBuffer = lineBuffer.substring(lineEndIndex + 1);
+                            
+                            const cleanedLine = rawLine.replace(/\r/g, '');
+
+                            if (cleanedLine.length > 0) {
+                                const normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
+                                
+                                // Attempt to parse TMR raw data (starts with a digit and has 5 parts)
+                                const parts = normalizedText.split(' ');
+                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT 的標籤式訊息
+                                if (parts.length >= 5 && !isNaN(parseInt(parts[0])) && !normalizedText.includes('Temperature:')) { 
+                                    // 原始資料格式: timestamp ADC1 ADC2 sensr_d dial_d
+                                    // 這裡根據使用者要求，ADC1 是第 2 參, ADC2 是第 3 參, sensor_d 是第 4 參, dial_d 是第 5 參 (Index 1, 2, 3, 4)
+                                    const adc1 = parts[1];      
+                                    const adc2 = parts[2];      
+                                    const sensorD = parts[3];   
+                                    const dialD = parts[4];     
+
+                                    tmrADC1Display.textContent = adc1;
+                                    tmrADC2Display.textContent = adc2;
+                                    tmrSensorDDisplay.textContent = sensorD;
+                                    tmrDialDDisplay.textContent = dialD;
+
+                                } 
+                                
+                                // --- RHT Parsing Logic (標籤式訊息) ---
+                                if (normalizedText.startsWith('Temperature:')) {
+                                    const tempValue = normalizedText.substring('Temperature:'.length).trim();
+                                    tempDisplay.textContent = tempValue;
+                                }
+                                if (normalizedText.startsWith('Relative Humidity:')) {
+                                    const rhValue = normalizedText.substring('Relative Humidity:'.length).trim();
+                                    rhDisplay.textContent = rhValue;
+                                }
+                                
+                                // Check for device termination signal (TMR session over)
+                                if (normalizedText.toUpperCase().includes('DONE') || normalizedText.toUpperCase().includes('STOPPED')) {
+                                    logData('設備信號：TMR 讀取已完成或停止，允許下達下一個 TMR 指令。', 'System');
+                                    enableTmrStartControls();
+                                }
+                                
+                                logData(normalizedText, 'Received'); 
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Reading error:', error);
+                logData(`錯誤: ${error.message}`, 'System');
+            } finally {
+                if (reader) {
+                    reader.releaseLock();
+                    reader = null;
+                }
+                if (keepReading) {
+                    disconnectSerial();
+                }
+            }
+        }
+
+        // Function to send data to the serial port
+        async function writeSerial(data) {
+            if (!port || !port.writable) {
+                updateStatus('發送失敗：請先連接序列埠。');
+                return;
+            }
+
+            try {
+                const writer = port.writable.getWriter();
+                let encodedData;
+                
+                if (data === '\x03') {
+                     encodedData = new TextEncoder().encode(data); 
+                } else {
+                    encodedData = new TextEncoder().encode(data + '\r\n');
+                }
+                
+                await writer.write(encodedData);
+                writer.releaseLock();
+                
+                if (data !== '\x03') {
+                    logData(data, 'Sent');
+                }
+            } catch (error) {
+                console.error('Writing error:', error);
+                logData(`發送錯誤: ${error.message}`, 'System');
+                disconnectSerial();
+            }
+        }
+
+        // Function to disconnect from the serial port
+        async function disconnectSerial() {
+            if (port) {
+                try {
+                    keepReading = false;
+                    if (reader) {
+                        await reader.cancel();
+                    }
+                    await port.close();
+                    port = null;
+                    updateStatus('已成功斷開連線。');
+                    
+                    if (batchTimer) {
+                        clearTimeout(batchTimer);
+                        batchTimer = null;
+                    }
+
+                } catch (error) {
+                    console.error('Disconnection error:', error);
+                    updateStatus(`斷開錯誤: ${error.message}`);
+                }
+            }
+        }
+
+        // Function to connect to the serial port
+        async function connectSerial() {
+            if (port) {
+                await disconnectSerial();
+                return;
+            }
+
+            if (!('serial' in navigator)) {
+                updateStatus('瀏覽器不支援 Web Serial API。請使用 Chrome 或 Edge。');
+                return;
+            }
+
+            try {
+                port = await navigator.serial.requestPort();
+                updateStatus('正在連接...');
+                await port.open({ baudRate: 9600 }); 
+                updateStatus('已連接到序列埠！', true);
+                readSerial();
+                
+                port.onchange = (e) => {
+                    if (e.target.disconnected) {
+                        console.log("Port disconnected event triggered.");
+                        disconnectSerial();
+                    }
+                };
+
+            } catch (error) {
+                port = null;
+                console.error('Connection error:', error);
+                if (error.name === 'NotFoundError') {
+                    updateStatus('連接失敗：找不到任何設備或使用者取消了選擇。');
+                } else {
+                    updateStatus(`連接錯誤: ${error.message}`);
+                }
+            }
+        }
+
+        // --- TMR Control Handlers ---
+        function handleStartReading() {
+            const interval = intervalInput.value.trim();
+            const numSamples = numSamplesInput.value.trim();
+            
+            if (!interval || parseInt(interval) <= 0 || isNaN(parseInt(interval))) {
+                showModal('輸入錯誤', '取樣間隔 ($interval\_us$) 必須是有效的正整數。');
+                return;
+            }
+            if (numSamples === '' || parseInt(numSamples) < 0 || isNaN(parseInt(numSamples))) {
+                 showModal('輸入錯誤', '取樣數量 ($num\_samples$) 必須是有效的非負整數。');
+                return;
+            }
+            
+            const command = `dial start ${interval} ${numSamples}`;
+            writeSerial(command);
+            
+            // TMR 開始讀取後，禁用所有其他功能 (TMR 鎖定)
+            setTmrActiveControls();
+        }
+
+        function handleStopReading() {
+            const ctrlC = '\x03';
+            writeSerial(ctrlC); 
+            logData('已發送中斷命令 (Ctrl-C)。設備應停止輸出。', 'System');
+            
+            // 等待設備回應 'DONE' 或 'STOPPED' 才會重新啟用控制項
+        }
+        
+        // --- LED Control Handlers ---
+        function handleLedOn() {
+            const command = 'fct-led amber on';
+            writeSerial(command);
+        }
+
+        function handleLedOff() {
+            const command = 'fct-led amber off';
+            writeSerial(command);
+        }
+        
+        // --- Buzzer Control Handlers ---
+        function handleBuzzerStart() {
+            let freq = parseInt(freqInput.value.trim());
+            let duty = parseInt(dutyInput.value.trim());
+
+            if (isNaN(freq) || freq <= 0) {
+                freq = 2000;
+                freqInput.value = 2000;
+                logData('頻率輸入無效，使用預設值 2000 Hz。', 'System');
+            }
+            if (isNaN(duty) || duty < 0 || duty > 255) {
+                duty = 128;
+                dutyInput.value = 128;
+                showModal('輸入警告', '佔空比輸入無效，已自動使用預設值 128 (範圍 0-255)。');
+            }
+            
+            const command = `fct-piezo start ${freq} ${duty}`;
+            writeSerial(command);
+        }
+
+        function handleBuzzerStop() {
+            const command = 'fct-piezo stop';
+            writeSerial(command);
+        }
+        
+        // --- RHT Control Handlers ---
+        function handleReadTemp() {
+            tempDisplay.textContent = '讀取中...';
+            rhDisplay.textContent = '--';
+            const command = 'rht 0 read t';
+            writeSerial(command);
+        }
+
+        function handleReadRHT() {
+            tempDisplay.textContent = '讀取中...';
+            rhDisplay.textContent = '讀取中...';
+            const command = 'rht 1 read rht';
+            writeSerial(command);
+        }
+
+        // --- Backlight Control Handlers (包含 Modal 提醒) ---
+        function handleBlStart() {
+            writeSerial('fct-bl start');
+        }
+
+        function handleBlStop() {
+            writeSerial('fct-bl stop');
+        }
+
+        function handleSetBrightness() {
+            const value = parseInt(blBrightnessInput.value.trim());
+            const MIN = 0;
+            const MAX = 255;
+            if (isNaN(value) || value < MIN || value > MAX) {
+                showModal('範圍錯誤：設定亮度', `亮度值 (${value}) 輸入無效或超出範圍。請輸入 ${MIN} 到 ${MAX} 之間的整數。`);
+                return;
+            }
+            writeSerial(`fct-bl set_brightness ${value}`);
+        }
+
+        function handleSetNits() {
+            const value = parseInt(blNitsInput.value.trim());
+            const MIN = 0;
+            const MAX = 1000;
+            if (isNaN(value) || value < MIN || value > MAX) {
+                showModal('範圍錯誤：設定 Nits', `Nits 值 (${value}) 輸入無效或超出範圍。請輸入 ${MIN} 到 ${MAX} 之間的整數。`);
+                return;
+            }
+            writeSerial(`fct-bl set_brightness_nits ${value}`);
+        }
+
+        function handleSetCurrentPercent() {
+            const value = parseInt(blCurrentPercentInput.value.trim());
+            const MIN = 0;
+            const MAX = 100;
+            if (isNaN(value) || value < MIN || value > MAX) {
+                showModal('範圍錯誤：設定電流百分比', `電流百分比 (${value}%) 輸入無效或超出範圍。請輸入 ${MIN} 到 ${MAX} 之間的整數。`);
+                return;
+            }
+            writeSerial(`fct-bl set_current_percent ${value}`);
+        }
+        
+        // --- LCD Control Handlers ---
+        function handleLcdStart() {
+            writeSerial('lcd start');
+        }
+
+        function handleLcdStop() {
+            writeSerial('lcd stop');
+        }
+
+        function handleLcdSuspend() {
+            writeSerial('lcd suspend');
+        }
+
+        function handleLcdResume() {
+            writeSerial('lcd resume');
+        }
+        
+        function handleLcdColorBar() {
+            writeSerial('lcd color_bar');
+        }
+
+
+        function handleLcdFill() {
+            const colorValue = updateHexDisplay(); // 確保再次檢查並獲取顏色值
+            if (colorValue) {
+                writeSerial(`lcd fill ${colorValue}`);
+            } else {
+                 // 這裡理論上不會被觸發，因為按鈕在無效顏色時是禁用的
+                 showModal('輸入錯誤', '請檢查 R、G、B 顏色輸入欄位，確保值在 0 到 255 之間。');
+            }
+        }
+
+        function handleLcdCrosshair() {
+            const colorValue = updateHexDisplay(); // 確保再次檢查並獲取顏色值
+            if (colorValue) {
+                writeSerial(`lcd crosshair ${colorValue}`);
+            } else {
+                 showModal('輸入錯誤', '請檢查 R、G、B 顏色輸入欄位，確保值在 0 到 255 之間。');
+            }
+        }
+        
+        function handleLcdChecker() {
+            const colorValue = updateHexDisplay(); // 檢查並獲取顏色值
+            if (!colorValue) {
+                 showModal('輸入錯誤', '請檢查 R、G、B 顏色輸入欄位，確保值在 0 到 255 之間。');
+                 return;
+            }
+            
+            const size = parseInt(checkerSizeInput.value.trim());
+            if (isNaN(size) || size <= 0) {
+                 showModal('輸入錯誤', '棋盤格大小 ($size$) 必須是有效的正整數 (e.g., 1-255)。');
+                 return;
+            }
+            
+            const command = `lcd checker ${colorValue} ${size}`;
+            writeSerial(command);
+        }
+
+
+        // Event Listeners
+        connectButton.addEventListener('click', connectSerial);
+        
+        // Event Listeners for Log Control
+        clearLogButton.addEventListener('click', () => {
+            dataLog.innerHTML = '已清除紀錄。\n';
+            logBuffer = []; 
+        });
+        
+        saveLogButton.addEventListener('click', saveLog);
+
+        // Event Listeners for TMR Control
+        startReadingButton.addEventListener('click', handleStartReading);
+        stopReadingButton.addEventListener('click', handleStopReading);
+        
+        // Event Listeners for LED Control
+        ledOnButton.addEventListener('click', handleLedOn);
+        ledOffButton.addEventListener('click', handleLedOff);
+        
+        // Event Listeners for Buzzer Control
+        buzzerStartButton.addEventListener('click', handleBuzzerStart);
+        buzzerStopButton.addEventListener('click', handleBuzzerStop);
+        
+        // Event Listeners for RHT Control
+        readTempButton.addEventListener('click', handleReadTemp);
+        readRHTButton.addEventListener('click', handleReadRHT);
+        
+        // Event Listeners for Backlight Control
+        blOnButton.addEventListener('click', handleBlStart);
+        blOffButton.addEventListener('click', handleBlStop);
+        setBrightnessButton.addEventListener('click', handleSetBrightness);
+        setNitsButton.addEventListener('click', handleSetNits);
+        setCurrentPercentButton.addEventListener('click', handleSetCurrentPercent);
+        
+        // Event Listeners for LCD Control
+        lcdStartButton.addEventListener('click', handleLcdStart);
+        lcdStopButton.addEventListener('click', handleLcdStop);
+        lcdSuspendButton.addEventListener('click', handleLcdSuspend);
+        lcdResumeButton.addEventListener('click', handleLcdResume);
+        lcdFillButton.addEventListener('click', handleLcdFill);
+        lcdCrosshairButton.addEventListener('click', handleLcdCrosshair);
+        lcdColorBarButton.addEventListener('click', handleLcdColorBar);
+        lcdCheckerButton.addEventListener('click', handleLcdChecker);
+
+        // Event Listeners for LCD Color Input (Update Display and validation checks on change)
+        colorRInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
+        colorGInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
+        colorBInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
+        
+        // Allow Enter key in TMR input fields to trigger Start Reading
+        intervalInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !startReadingButton.disabled) {
+                event.preventDefault();
+                handleStartReading();
+            }
+        });
+
+        numSamplesInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !startReadingButton.disabled) {
+                event.preventDefault();
+                handleStartReading();
+            }
+        });
+        
+        // Allow Enter key in Buzzer input fields to trigger Start Buzzer
+        freqInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !buzzerStartButton.disabled) {
+                event.preventDefault();
+                handleBuzzerStart();
+            }
+        });
+
+        dutyInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !buzzerStartButton.disabled) {
+                event.preventDefault();
+                handleBuzzerStart();
+            }
+        });
+        
+        // Allow Enter key in Backlight input fields to trigger Set
+        blBrightnessInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !setBrightnessButton.disabled) {
+                event.preventDefault();
+                handleSetBrightness();
+            }
+        });
+        blNitsInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !setNitsButton.disabled) {
+                event.preventDefault();
+                handleSetNits();
+            }
+        });
+        blCurrentPercentInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !setCurrentPercentButton.disabled) {
+                event.preventDefault();
+                handleSetCurrentPercent();
+            }
+        });
+        
+        // Allow Enter key in Checker Size input to trigger Checker command
+        checkerSizeInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !lcdCheckerButton.disabled) {
+                event.preventDefault();
+                handleLcdChecker();
+            }
+        });
+
+        // Initial state setup
+        window.onload = () => {
+            if (!('serial' in navigator)) {
+                updateStatus('您的瀏覽器不支援 Web Serial API。', false);
+                connectButton.disabled = true;
+            } else {
+                disableAllControls();
+                updateHexDisplay(); // Initialize hex display on load (只更新顯示，不啟用按鈕)
+            }
+        };
+
+    </script>
+</body>
+</html>
