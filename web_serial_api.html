@@ -353,11 +353,7 @@
                         開始讀取
                     </button>
                 </div>
-                <button id="alsStopButton" disabled 
-                    class="w-full bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-2">
-                    中斷 (Ctrl-C)
-                </button>
-            </div>
+                </div>
 
             <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
                 <h3 class="text-md font-medium text-gray-700 border-b pb-1">參數配置 (Gain/SampleTime/NrSamples)</h3>
@@ -537,7 +533,7 @@
         const alsResetButton = document.getElementById('alsResetButton');
         const alsReadSamplesInput = document.getElementById('alsReadSamplesInput');
         const alsReadButton = document.getElementById('alsReadButton');
-        const alsStopButton = document.getElementById('alsStopButton');
+        // const alsStopButton = document.getElementById('alsStopButton'); // REMOVED
         const alsGainInput = document.getElementById('alsGainInput');
         const setGainButton = document.getElementById('setGainButton');
         const alsSampleTimeInput = document.getElementById('alsSampleTimeInput');
@@ -707,7 +703,7 @@
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = false;
             alsReadButton.disabled = true;
-            alsStopButton.disabled = true;
+            // alsStopButton.disabled = true; // REMOVED
             alsGainInput.disabled = false;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = false;
@@ -755,7 +751,7 @@
             alsResetButton.disabled = false;
             alsReadSamplesInput.disabled = false;
             alsReadButton.disabled = false;
-            alsStopButton.disabled = true; // 讀取未開始，先禁用停止按鈕
+            // alsStopButton.disabled = true; // REMOVED
             alsGainInput.disabled = false;
             setGainButton.disabled = false;
             alsSampleTimeInput.disabled = false;
@@ -823,7 +819,7 @@
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = true;
             alsReadButton.disabled = true;
-            alsStopButton.disabled = false; // ONLY stop is active
+            // alsStopButton.disabled = false; // REMOVED
             alsGainInput.disabled = true;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = true;
@@ -1359,11 +1355,12 @@
             setTmrActiveControls();
         }
 
-        function handleAlsStop() {
+        /* function handleAlsStop() {
             const ctrlC = '\x03';
             writeSerial(ctrlC); 
             logData('已發送中斷命令 (Ctrl-C)。設備應停止輸出。', 'System');
         }
+        */
 
         function handleSetGain() {
             const gainValue = parseInt(alsGainInput.value.trim());
@@ -1451,7 +1448,7 @@
         alsDetectButton.addEventListener('click', handleAlsDetect);
         alsResetButton.addEventListener('click', handleAlsReset);
         alsReadButton.addEventListener('click', handleAlsRead);
-        alsStopButton.addEventListener('click', handleAlsStop);
+        // alsStopButton.addEventListener('click', handleAlsStop); // REMOVED
         setGainButton.addEventListener('click', handleSetGain);
         setSampleTimeButton.addEventListener('click', handleSetSampleTime);
         setNrSamplesButton.addEventListener('click', handleSetNrSamples);
