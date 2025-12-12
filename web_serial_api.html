@@ -344,8 +344,8 @@
                 <h3 class="text-md font-medium text-gray-700 border-b pb-1">讀取控制 (tcs3410 read)</h3>
                 <div class="flex space-x-3">
                     <div class="flex-1">
-                        <label for="alsReadSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (0=無限, 預設 1)</label>
-                        <input type="number" id="alsReadSamplesInput" value="1" min="0"
+                        <label for="alsReadSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (預設 1, 必須 >= 1)</label>
+                        <input type="number" id="alsReadSamplesInput" value="1" min="1"
                             class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                     </div>
                     <button id="alsReadButton" disabled 
@@ -533,7 +533,6 @@
         const alsResetButton = document.getElementById('alsResetButton');
         const alsReadSamplesInput = document.getElementById('alsReadSamplesInput');
         const alsReadButton = document.getElementById('alsReadButton');
-        // const alsStopButton = document.getElementById('alsStopButton'); // REMOVED
         const alsGainInput = document.getElementById('alsGainInput');
         const setGainButton = document.getElementById('setGainButton');
         const alsSampleTimeInput = document.getElementById('alsSampleTimeInput');
@@ -703,7 +702,6 @@
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = false;
             alsReadButton.disabled = true;
-            // alsStopButton.disabled = true; // REMOVED
             alsGainInput.disabled = false;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = false;
@@ -751,14 +749,12 @@
             alsResetButton.disabled = false;
             alsReadSamplesInput.disabled = false;
             alsReadButton.disabled = false;
-            // alsStopButton.disabled = true; // REMOVED
             alsGainInput.disabled = false;
             setGainButton.disabled = false;
             alsSampleTimeInput.disabled = false;
             setSampleTimeButton.disabled = false;
             alsNrSamplesInput.disabled = false;
             setNrSamplesButton.disabled = false;
-
         }
 
         // Function 3: Set controls when TMR or ALS is running (Active state)
@@ -800,7 +796,6 @@
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = true;
             alsReadButton.disabled = true;
-            // alsStopButton.disabled = false; // REMOVED
             alsGainInput.disabled = true;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = true;
@@ -1137,6 +1132,7 @@
                 showModal('輸入錯誤', '取樣間隔 ($interval\_us$) 必須是有效的正整數。');
                 return;
             }
+            // 這裡保留 0=無限 的設計
             if (numSamples === '' || parseInt(numSamples) < 0 || isNaN(parseInt(numSamples))) {
                  showModal('輸入錯誤', '取樣數量 ($num\_samples$) 必須是有效的非負整數。');
                 return;
@@ -1324,8 +1320,9 @@
         function handleAlsRead() {
             const numSamples = alsReadSamplesInput.value.trim();
             
-            if (numSamples === '' || parseInt(numSamples) < 0 || isNaN(parseInt(numSamples))) {
-                 showModal('輸入錯誤', 'ALS 取樣數量必須是有效的非負整數。');
+            // MODIFIED: 驗證必須大於 0
+            if (numSamples === '' || parseInt(numSamples) < 1 || isNaN(parseInt(numSamples))) {
+                 showModal('輸入錯誤', 'ALS 取樣數量必須是有效的**正整數 (>= 1)**。');
                 return;
             }
             
@@ -1335,13 +1332,6 @@
             // ALS 開始讀取後，禁用所有其他功能 (ALS 鎖定)
             setTmrActiveControls();
         }
-
-        /* function handleAlsStop() {
-            const ctrlC = '\x03';
-            writeSerial(ctrlC); 
-            logData('已發送中斷命令 (Ctrl-C)。設備應停止輸出。', 'System');
-        }
-        */
 
         function handleSetGain() {
             const gainValue = parseInt(alsGainInput.value.trim());
@@ -1429,7 +1419,6 @@
         alsDetectButton.addEventListener('click', handleAlsDetect);
         alsResetButton.addEventListener('click', handleAlsReset);
         alsReadButton.addEventListener('click', handleAlsRead);
-        // alsStopButton.addEventListener('click', handleAlsStop); // REMOVED
         setGainButton.addEventListener('click', handleSetGain);
         setSampleTimeButton.addEventListener('click', handleSetSampleTime);
         setNrSamplesButton.addEventListener('click', handleSetNrSamples);
