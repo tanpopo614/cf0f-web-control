@@ -959,8 +959,8 @@
                                 }
                                 
                                 // --- ALS TCS3410 Parsing Logic (New) ---
-                                // 1. Configuration Status (e.g., Gain = 128x)
-                                if (normalizedText.includes('Gain =') && normalizedText.includes('Sample time =')) {
+                                // 1. Configuration Status (e.g., Gain = 128x)                                
+                                if (normalizedText.includes('Gain =') || normalizedText.includes('Sample time =') || normalizedText.includes('Nr samples =')) {
                                     const gainMatch = normalizedText.match(/Gain = (\d+)x/);
                                     const sampleTimeMatch = normalizedText.match(/Sample time = (\d+)/);
                                     const nrSamplesMatch = normalizedText.match(/Nr samples = (\d+)/);
