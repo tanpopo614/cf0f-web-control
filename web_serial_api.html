@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button)</title>
+    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button/SysEnv)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 使用 Inter 字體 */
@@ -78,6 +78,45 @@
             </button>
         </div>
 
+        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-700">系統環境資訊 (SysEnv)</h2>
+            <p class="text-sm text-gray-600">連線成功後會自動執行 `sysenv` 讀取並顯示結果。</p>
+
+            <div id="sysEnvDisplay" class="p-3 bg-white rounded-lg border border-gray-200 text-xs shadow-inner space-y-1">
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">MLB#:</span>
+                    <span id="sysEnv_mlb_hash" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">MLB Config:</span>
+                    <span id="sysEnv_mlbconfig" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">NL Model:</span>
+                    <span id="sysEnv_nlmodel" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">WIP#:</span>
+                    <span id="sysEnv_wip_hash" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">Housing Color:</span>
+                    <span id="sysEnv_housing_color" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">Build Date:</span>
+                    <span id="sysEnv_build_date" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">Serial#:</span>
+                    <span id="sysEnv_serial_hash" class="font-bold text-indigo-700">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">Build:</span>
+                    <span id="sysEnv_build" class="font-bold text-indigo-700">--</span>
+                </p>
+            </div>
+        </div>
         <div class="md:flex md:space-x-4 mb-6">
             
             <div class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
@@ -453,7 +492,7 @@
         
         <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600">
             <div class="flex justify-between items-center mb-2">
-                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.2.2 (新增 Button Control)</span></p>
+                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.2.3 (新增 SysEnv & Button Fix)</span></p>
                 <p class="text-xs">最後更新日期: 2025.12.15</p>
             </div>
             <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
@@ -549,7 +588,7 @@
         const checkerSizeInput = document.getElementById('checkerSizeInput');
         const lcdCheckerButton = document.getElementById('lcdCheckerButton');
         
-        // === Button Control Elements (New) ===
+        // === Button Control Elements ===
         const buttonStartButton = document.getElementById('buttonStartButton');
         const buttonStopButton = document.getElementById('buttonStopButton');
         const buttonCyclesDisplay = document.getElementById('buttonCyclesDisplay');
@@ -578,13 +617,24 @@
         const alsGreen = document.getElementById('alsGreen');
         const alsWB = document.getElementById('alsWB');
         // ================================
+        
+        // === NEW SysEnv Display Elements ===
+        const sysEnv_mlb_hash = document.getElementById('sysEnv_mlb_hash');
+        const sysEnv_mlbconfig = document.getElementById('sysEnv_mlbconfig');
+        const sysEnv_nlmodel = document.getElementById('sysEnv_nlmodel');
+        const sysEnv_wip_hash = document.getElementById('sysEnv_wip_hash');
+        const sysEnv_housing_color = document.getElementById('sysEnv_housing_color');
+        const sysEnv_build_date = document.getElementById('sysEnv_build_date');
+        const sysEnv_serial_hash = document.getElementById('sysEnv_serial_hash');
+        const sysEnv_build = document.getElementById('sysEnv_build');
+        // ===================================
 
 
         let port; 
         let reader;
         let keepReading = false;
         let lineBuffer = ''; 
-        let isButtonRecording = false; // 追蹤按鈕是否正在記錄狀態 (New)
+        let isButtonRecording = false; // 追蹤按鈕是否正在記錄狀態
 
         // === 效能優化相關變數 ===
         let logBuffer = []; // 接收到的數據緩衝區
@@ -725,7 +775,7 @@
             updateLcdColorButtonsState(); // 顏色相關按鈕禁用（通過集中函數處理）
             checkerSizeInput.disabled = false;
             
-            // Disable Button Controls (New)
+            // Disable Button Controls
             buttonStartButton.disabled = true;
             buttonStopButton.disabled = true;
 
@@ -776,7 +826,7 @@
             checkerSizeInput.disabled = false;
             updateLcdColorButtonsState(); // 根據顏色輸入的有效性，啟用填滿、十字線和 Checker 按鈕
             
-            // Enable Button Controls (New)
+            // Enable Button Controls
             buttonStartButton.disabled = false;
             buttonStopButton.disabled = false;
             isButtonRecording = false;
@@ -794,7 +844,7 @@
             setNrSamplesButton.disabled = false;
         }
 
-        // Function 3: Set controls when TMR or ALS is running (Active state)
+        // Function 3: Set controls when TMR, ALS, or Button is running (Active state)
         function setTmrActiveControls() {
             // TMR controls
             startReadingButton.disabled = true;
@@ -828,7 +878,7 @@
             lcdCheckerButton.disabled = true;
             checkerSizeInput.disabled = true;
 
-            // Disable Button Controls (New)
+            // Disable Button Controls (會被 handleButtonStart 覆寫)
             buttonStartButton.disabled = true;
             buttonStopButton.disabled = true;
             
@@ -969,12 +1019,13 @@
                                 let normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
                                 
                                 // TMR Parsing Logic
-                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button 的標籤式訊息
+                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv 的標籤式訊息
                                 const parts = normalizedText.split(' ');
                                 const isTmrData = parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
                                                   !normalizedText.includes('Temperature:') && 
                                                   !normalizedText.includes('clear1') &&
-                                                  !normalizedText.includes('button cycles:'); // 排除 ALS/Button 數據頭
+                                                  !normalizedText.includes('button cycles:') &&
+                                                  !normalizedText.includes('='); // 排除 SysEnv 數據
 
                                 if (isTmrData) { 
                                     // 原始資料格式: timestamp ADC1 ADC2 sensr_d dial_d
@@ -990,6 +1041,45 @@
 
                                 } 
                                 
+                                // --- SysEnv Parsing Logic (New) ---
+                                // 預期的格式是 key=value
+                                const sysEnvMatch = normalizedText.match(/(\w+#?)=(.+)/);
+                                if (sysEnvMatch) {
+                                    const key = sysEnvMatch[1].toLowerCase();
+                                    const value = sysEnvMatch[2].trim();
+                                    
+                                    switch (key) {
+                                        case 'mlb#':
+                                            sysEnv_mlb_hash.textContent = value;
+                                            break;
+                                        case 'mlbconfig':
+                                            sysEnv_mlbconfig.textContent = value;
+                                            break;
+                                        case 'nlmodel':
+                                            sysEnv_nlmodel.textContent = value;
+                                            break;
+                                        case 'wip#':
+                                            sysEnv_wip_hash.textContent = value;
+                                            break;
+                                        case 'housing_color':
+                                            sysEnv_housing_color.textContent = value;
+                                            break;
+                                        case 'build_date':
+                                            sysEnv_build_date.textContent = value;
+                                            break;
+                                        case 'serial#':
+                                            sysEnv_serial_hash.textContent = value;
+                                            break;
+                                        case 'build':
+                                            sysEnv_build.textContent = value;
+                                            break;
+                                        default:
+                                            // 忽略其他不相關的鍵值對
+                                            break;
+                                    }
+                                }
+                                // --- END SysEnv Parsing Logic ---
+
                                 // --- RHT Parsing Logic (標籤式訊息) ---
                                 if (normalizedText.startsWith('Temperature:')) {
                                     const tempValue = normalizedText.substring('Temperature:'.length).trim();
@@ -1000,7 +1090,7 @@
                                     rhDisplay.textContent = rhValue;
                                 }
                                 
-                                // --- Button Control Parsing Logic (New) ---
+                                // --- Button Control Parsing Logic ---
                                 // 1. Start Record Response: 收到 'result = 0'
                                 if (normalizedText === 'result = 0' && isButtonRecording) {
                                     logData('✅ 按鈕測試: 開始記錄命令已發送。等待按鍵...', 'System');
@@ -1016,9 +1106,7 @@
                                     
                                     // 停止後，確保按鈕返回閒置狀態
                                     if (!port.disconnected) {
-                                        buttonStartButton.disabled = false;
-                                        buttonStopButton.disabled = true;
-                                        isButtonRecording = false;
+                                        enableTmrStartControls(); // 呼叫通用函數重新啟用所有控制項
                                     }
                                 }
                                 // --- END Button Control Parsing Logic ---
@@ -1173,6 +1261,10 @@
                 updateStatus('已連接到序列埠！', true);
                 readSerial();
                 
+                // === [新增] 連線成功後自動執行 sysenv ===
+                await writeSerial('sysenv'); 
+                // =======================================
+
                 port.onchange = (e) => {
                     if (e.target.disconnected) {
                         console.log("Port disconnected event triggered.");
@@ -1380,7 +1472,7 @@
             // 立即更新按鈕狀態
             buttonStartButton.disabled = true;
             isButtonRecording = true;
-    
+            
             // 1. 禁用所有其他控制項（進入鎖定狀態）
             setTmrActiveControls(); 
 
