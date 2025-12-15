@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT)</title>
+    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 使用 Inter 字體 */
@@ -327,7 +327,28 @@
                 </div>
             </div>
         </div>
-        
+
+        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-orange-50">
+            <h2 class="text-lg font-semibold text-gray-700">按鈕測試控制 (Button Control)</h2>
+
+            <div class="md:flex md:space-x-4">
+                <div class="w-full md:w-1/2 space-y-3 mb-4 md:mb-0">
+                    <button id="buttonStartButton" disabled
+                        class="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        1. 開始記錄 (fct-button start-record)
+                    </button>
+                    <button id="buttonStopButton" disabled
+                        class="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        2. 停止/讀取 (fct-button stop-record)
+                    </button>
+                </div>
+
+                <div class="w-full md:w-1/2 mt-0 p-3 bg-white rounded-lg border border-orange-200 text-sm shadow-inner flex items-center justify-between">
+                    <span class="font-medium text-gray-700">按鈕循環次數 (Button Cycles):</span>
+                    <span id="buttonCyclesDisplay" class="font-bold text-orange-800 text-xl">--</span>
+                </div>
+            </div>
+        </div>
         <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-purple-50">
             <h2 class="text-lg font-semibold text-gray-700">ALS 環境光感測器控制 (TCS3410)</h2>
             
@@ -432,8 +453,8 @@
         
         <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600">
             <div class="flex justify-between items-center mb-2">
-                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.2.1 (ALS 優化)</span></p>
-                <p class="text-xs">最後更新日期: 2025.12.11</p>
+                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.2.2 (新增 Button Control)</span></p>
+                <p class="text-xs">最後更新日期: 2025.12.15</p>
             </div>
             <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
             <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
@@ -528,7 +549,13 @@
         const checkerSizeInput = document.getElementById('checkerSizeInput');
         const lcdCheckerButton = document.getElementById('lcdCheckerButton');
         
-        // === NEW ALS Control Elements ===
+        // === Button Control Elements (New) ===
+        const buttonStartButton = document.getElementById('buttonStartButton');
+        const buttonStopButton = document.getElementById('buttonStopButton');
+        const buttonCyclesDisplay = document.getElementById('buttonCyclesDisplay');
+        // =====================================
+
+        // === ALS Control Elements ===
         const alsDetectButton = document.getElementById('alsDetectButton');
         const alsResetButton = document.getElementById('alsResetButton');
         const alsReadSamplesInput = document.getElementById('alsReadSamplesInput');
@@ -557,6 +584,7 @@
         let reader;
         let keepReading = false;
         let lineBuffer = ''; 
+        let isButtonRecording = false; // 追蹤按鈕是否正在記錄狀態 (New)
 
         // === 效能優化相關變數 ===
         let logBuffer = []; // 接收到的數據緩衝區
@@ -697,7 +725,11 @@
             updateLcdColorButtonsState(); // 顏色相關按鈕禁用（通過集中函數處理）
             checkerSizeInput.disabled = false;
             
-            // Disable ALS Controls (New)
+            // Disable Button Controls (New)
+            buttonStartButton.disabled = true;
+            buttonStopButton.disabled = true;
+
+            // Disable ALS Controls
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = false;
@@ -744,7 +776,12 @@
             checkerSizeInput.disabled = false;
             updateLcdColorButtonsState(); // 根據顏色輸入的有效性，啟用填滿、十字線和 Checker 按鈕
             
-            // Enable ALS Controls (New)
+            // Enable Button Controls (New)
+            buttonStartButton.disabled = false;
+            buttonStopButton.disabled = false;
+            isButtonRecording = false;
+
+            // Enable ALS Controls
             alsDetectButton.disabled = false;
             alsResetButton.disabled = false;
             alsReadSamplesInput.disabled = false;
@@ -790,8 +827,12 @@
             lcdColorBarButton.disabled = true;
             lcdCheckerButton.disabled = true;
             checkerSizeInput.disabled = true;
+
+            // Disable Button Controls (New)
+            buttonStartButton.disabled = true;
+            buttonStopButton.disabled = true;
             
-            // Disable ALS Control Except Stop (New)
+            // Disable ALS Control Except Stop
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = true;
@@ -928,11 +969,12 @@
                                 let normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
                                 
                                 // TMR Parsing Logic
-                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS 的標籤式訊息
+                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button 的標籤式訊息
                                 const parts = normalizedText.split(' ');
                                 const isTmrData = parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
                                                   !normalizedText.includes('Temperature:') && 
-                                                  !normalizedText.includes('clear1'); // 排除 ALS 數據頭
+                                                  !normalizedText.includes('clear1') &&
+                                                  !normalizedText.includes('button cycles:'); // 排除 ALS/Button 數據頭
 
                                 if (isTmrData) { 
                                     // 原始資料格式: timestamp ADC1 ADC2 sensr_d dial_d
@@ -958,7 +1000,31 @@
                                     rhDisplay.textContent = rhValue;
                                 }
                                 
-                                // --- ALS TCS3410 Parsing Logic (New) ---
+                                // --- Button Control Parsing Logic (New) ---
+                                // 1. Start Record Response: 收到 'result = 0'
+                                if (normalizedText === 'result = 0' && isButtonRecording) {
+                                    logData('✅ 按鈕測試: 開始記錄命令已發送。等待按鍵...', 'System');
+                                    // 按鈕狀態已在 handleButtonStart 中更新，這裡只需日誌記錄。
+                                }
+                                
+                                // 2. Stop Record Response: 收到 'INFO: button cycles: XXXXX'
+                                const cyclesMatch = normalizedText.match(/INFO: button cycles: (\d+)/);
+                                if (cyclesMatch) {
+                                    const cycles = cyclesMatch[1];
+                                    buttonCyclesDisplay.textContent = cycles;
+                                    logData(`✅ 按鈕測試: 停止記錄成功。按下次數: ${cycles}`, 'System');
+                                    
+                                    // 停止後，確保按鈕返回閒置狀態
+                                    if (!port.disconnected) {
+                                        buttonStartButton.disabled = false;
+                                        buttonStopButton.disabled = true;
+                                        isButtonRecording = false;
+                                    }
+                                }
+                                // --- END Button Control Parsing Logic ---
+
+
+                                // --- ALS TCS3410 Parsing Logic ---
                                 // 1. Configuration Status (e.g., Gain = 128x)                                
                                 if (normalizedText.includes('Gain =') || normalizedText.includes('Sample time =') || normalizedText.includes('Nr samples =')) {
                                     const gainMatch = normalizedText.match(/Gain = (\d+)x/);
@@ -1306,7 +1372,36 @@
             writeSerial(command);
         }
 
-        // --- NEW ALS Control Handlers ---
+        // --- NEW Button Control Handlers ---
+        function handleButtonStart() {
+            buttonCyclesDisplay.textContent = '記錄中...'; // 顯示狀態
+            writeSerial('fct-button start-record');
+            
+            // 立即更新按鈕狀態
+            buttonStartButton.disabled = true;
+            isButtonRecording = true;
+    
+            // 1. 禁用所有其他控制項（進入鎖定狀態）
+            setTmrActiveControls(); 
+
+            // 2. [修正] 覆寫通用鎖定，確保「停止記錄」按鈕在記錄狀態中可以被按下
+            buttonStopButton.disabled = false;
+            logData('系統鎖定：已進入按鈕測試模式。', 'System');
+        }
+
+        function handleButtonStop() {
+            writeSerial('fct-button stop-record');
+            
+            buttonCyclesDisplay.textContent = '停止中...';
+            // 立即禁用兩個按鈕，等待序列埠回傳結果後，再調用 enableTmrStartControls()
+            buttonStartButton.disabled = true;
+            buttonStopButton.disabled = true;
+            isButtonRecording = false;
+        }
+        // --- END Button Control Handlers ---
+
+
+        // --- ALS Control Handlers ---
         function handleAlsDetect() {
             writeSerial('tcs3410 detect');
         }
@@ -1417,6 +1512,10 @@
         colorGInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
         colorBInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
         
+        // Event Listeners for NEW Button Control
+        buttonStartButton.addEventListener('click', handleButtonStart);
+        buttonStopButton.addEventListener('click', handleButtonStop);
+
         // Event Listeners for NEW ALS Control
         alsDetectButton.addEventListener('click', handleAlsDetect);
         alsResetButton.addEventListener('click', handleAlsReset);
@@ -1524,4 +1623,4 @@
 
     </script>
 </body>
-</html> 
+</html>
