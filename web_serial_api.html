@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button/SysEnv)</title>
+    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button/SysEnv/Battery)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 使用 Inter 字體 */
@@ -388,6 +388,71 @@
                 </div>
             </div>
         </div>
+        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-yellow-50">
+            <h2 class="text-lg font-semibold text-gray-700">電池控制 (Battery Control)</h2>
+
+            <div class="p-3 bg-white rounded-lg border border-yellow-200 text-sm shadow-inner space-y-2">
+                <h3 class="font-medium text-gray-700 border-b pb-1 mb-1">即時電壓/溫度/限制電流</h3>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">電壓 (mV):</span>
+                    <span id="batVoltageDisplay" class="font-bold text-yellow-800">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">溫度 (°C):</span>
+                    <span id="batTempDisplay" class="font-bold text-yellow-800">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">Input Limit (mA):</span>
+                    <span id="batIlimitDisplay" class="font-bold text-yellow-800">--</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-600 font-medium">充電狀態 (Charger):</span>
+                    <span id="batChargerStatusDisplay" class="font-bold text-yellow-800">--</span>
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button id="batReadVoltageButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    讀取電壓
+                </button>
+                <button id="batReadTempButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    讀取溫度
+                </button>
+                <button id="batReadIlimitButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    讀取限制電流
+                </button>
+                <button id="batDumpRegButton" disabled class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                    Dump Register
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <h3 class="text-sm font-semibold text-gray-700 border-b pb-1">設定控制</h3>
+                
+                <div class="flex space-x-3 items-end">
+                    <div class="flex-1">
+                        <label for="batIlimitInput" class="block text-xs font-medium text-gray-700 mb-1">設定 Input Current Limit (0-100 mA)</label>
+                        <input type="number" id="batIlimitInput" value="100" min="0" max="100" 
+                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                    </div>
+                    <button id="batSetIlimitButton" disabled 
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                        設定電流
+                    </button>
+                </div>
+
+                <div class="flex space-x-3 pt-2">
+                    <button id="batChargerEnableButton" disabled 
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        充電開啟 (Enable)
+                    </button>
+                    <button id="batChargerDisableButton" disabled 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                        充電關閉 (Disable)
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-purple-50">
             <h2 class="text-lg font-semibold text-gray-700">ALS 環境光感測器控制 (TCS3410)</h2>
             
@@ -492,8 +557,8 @@
         
         <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600">
             <div class="flex justify-between items-center mb-2">
-                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.2.3 (新增 SysEnv & Button Fix)</span></p>
-                <p class="text-xs">最後更新日期: 2025.12.15</p>
+                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.0 (新增 Battery Control)</span></p>
+                <p class="text-xs">最後更新日期: 2025.12.16</p>
             </div>
             <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
             <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
@@ -594,6 +659,23 @@
         const buttonCyclesDisplay = document.getElementById('buttonCyclesDisplay');
         // =====================================
 
+        // === Battery Control Elements ===
+        const batVoltageDisplay = document.getElementById('batVoltageDisplay');
+        const batTempDisplay = document.getElementById('batTempDisplay');
+        const batIlimitDisplay = document.getElementById('batIlimitDisplay');
+        const batChargerStatusDisplay = document.getElementById('batChargerStatusDisplay');
+
+        const batReadVoltageButton = document.getElementById('batReadVoltageButton');
+        const batReadTempButton = document.getElementById('batReadTempButton');
+        const batReadIlimitButton = document.getElementById('batReadIlimitButton');
+        const batDumpRegButton = document.getElementById('batDumpRegButton');
+
+        const batIlimitInput = document.getElementById('batIlimitInput');
+        const batSetIlimitButton = document.getElementById('batSetIlimitButton');
+        const batChargerEnableButton = document.getElementById('batChargerEnableButton');
+        const batChargerDisableButton = document.getElementById('batChargerDisableButton');
+        // =====================================
+        
         // === ALS Control Elements ===
         const alsDetectButton = document.getElementById('alsDetectButton');
         const alsResetButton = document.getElementById('alsResetButton');
@@ -618,7 +700,7 @@
         const alsWB = document.getElementById('alsWB');
         // ================================
         
-        // === NEW SysEnv Display Elements ===
+        // === SysEnv Display Elements ===
         const sysEnv_mlb_hash = document.getElementById('sysEnv_mlb_hash');
         const sysEnv_mlbconfig = document.getElementById('sysEnv_mlbconfig');
         const sysEnv_nlmodel = document.getElementById('sysEnv_nlmodel');
@@ -779,6 +861,16 @@
             buttonStartButton.disabled = true;
             buttonStopButton.disabled = true;
 
+            // Disable Battery Controls
+            batReadVoltageButton.disabled = true;
+            batReadTempButton.disabled = true;
+            batReadIlimitButton.disabled = true;
+            batDumpRegButton.disabled = true;
+            batIlimitInput.disabled = false;
+            batSetIlimitButton.disabled = true;
+            batChargerEnableButton.disabled = true;
+            batChargerDisableButton.disabled = true;
+
             // Disable ALS Controls
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
@@ -831,6 +923,16 @@
             buttonStopButton.disabled = false;
             isButtonRecording = false;
 
+            // Enable Battery Controls
+            batReadVoltageButton.disabled = false;
+            batReadTempButton.disabled = false;
+            batReadIlimitButton.disabled = false;
+            batDumpRegButton.disabled = false;
+            batIlimitInput.disabled = false;
+            batSetIlimitButton.disabled = false;
+            batChargerEnableButton.disabled = false;
+            batChargerDisableButton.disabled = false;
+
             // Enable ALS Controls
             alsDetectButton.disabled = false;
             alsResetButton.disabled = false;
@@ -882,6 +984,16 @@
             buttonStartButton.disabled = true;
             buttonStopButton.disabled = true;
             
+            // Disable Battery Controls (Ensure lock)
+            batReadVoltageButton.disabled = true;
+            batReadTempButton.disabled = true;
+            batReadIlimitButton.disabled = true;
+            batDumpRegButton.disabled = true;
+            batIlimitInput.disabled = true;
+            batSetIlimitButton.disabled = true;
+            batChargerEnableButton.disabled = true;
+            batChargerDisableButton.disabled = true;
+
             // Disable ALS Control Except Stop
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
@@ -1019,12 +1131,15 @@
                                 let normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
                                 
                                 // TMR Parsing Logic
-                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv 的標籤式訊息
+                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv/Battery 的標籤式訊息
                                 const parts = normalizedText.split(' ');
                                 const isTmrData = parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
                                                   !normalizedText.includes('Temperature:') && 
                                                   !normalizedText.includes('clear1') &&
                                                   !normalizedText.includes('button cycles:') &&
+                                                  !normalizedText.includes('vbat') && // 排除 Battery 數據
+                                                  !normalizedText.includes('current limit:') && // 排除 Battery 數據
+                                                  !normalizedText.includes('charger_set') && // 排除 Battery 數據
                                                   !normalizedText.includes('='); // 排除 SysEnv 數據
 
                                 if (isTmrData) { 
@@ -1110,6 +1225,52 @@
                                     }
                                 }
                                 // --- END Button Control Parsing Logic ---
+
+                                // --- Battery Control Parsing Logic ---
+                                // 1. Voltage: vbat voltage: XXXX
+                                const voltageMatch = normalizedText.match(/vbat voltage: (\d+)/);
+                                if (voltageMatch) {
+                                    batVoltageDisplay.textContent = `${voltageMatch[1]} mV`;
+                                }
+
+                                // 2. Temperature: vbat temperature: XX
+                                const tempMatch = normalizedText.match(/vbat temperature: (\d+)/);
+                                if (tempMatch) {
+                                    batTempDisplay.textContent = `${tempMatch[1]} °C`;
+                                }
+
+                                // 3. Input Current Limit (Read): current limit: XX
+                                const ilimitMatch = normalizedText.match(/current limit: (\d+)/);
+                                if (ilimitMatch) {
+                                    batIlimitDisplay.textContent = `${ilimitMatch[1]} mA`;
+                                }
+
+                                // 4. Charger Status
+                                if (normalizedText === 'charger_set_disabled') {
+                                    batChargerStatusDisplay.textContent = '未充電 (Disabled)';
+                                } else if (normalizedText === 'charger_set_enabled') {
+                                    batChargerStatusDisplay.textContent = '充電中 (Enabled)';
+                                }
+
+                                // 5. Charger Set Status (result = 0 or failure)
+                                const chargerSetMatch = normalizedText.match(/result = (\d)/);
+                                if (chargerSetMatch) {
+                                    // 忽略 Button Command 的 result=0 成功 (因為 Button 有自己的邏輯處理 isButtonRecording)
+                                    if (isButtonRecording && chargerSetMatch[1] === '0') {
+                                         // 讓 Button 的邏輯去處理
+                                    } else if (chargerSetMatch[1] === '0') {
+                                        //showModal('✅ 設定成功', `指令執行成功 (result = 0)。`);
+                                        logData('✅ 設定成功。', 'System');
+                                        
+                                        // 立即讀取狀態，更新 UI
+                                        writeSerial('fct-bat charger status'); 
+
+                                    } else {
+                                        showModal('❌ 設定失敗', `指令回傳錯誤碼: ${chargerSetMatch[1]}。`);
+                                        logData(`❌ 設定失敗: ${normalizedText}`, 'System');
+                                    }
+                                }
+                                // --- END Battery Control Parsing Logic ---
 
 
                                 // --- ALS TCS3410 Parsing Logic ---
@@ -1492,6 +1653,56 @@
         }
         // --- END Button Control Handlers ---
 
+        // --- NEW Battery Control Handlers ---
+        function handleBatReadVoltage() {
+            batVoltageDisplay.textContent = '讀取中...';
+            writeSerial('fct-bat voltage');
+        }
+
+        function handleBatReadTemp() {
+            batTempDisplay.textContent = '讀取中...';
+            writeSerial('fct-bat temp');
+        }
+
+        function handleBatReadIlimit() {
+            batIlimitDisplay.textContent = '讀取中...';
+            writeSerial('fct-bat ilimit');
+        }
+
+        function handleBatDumpReg() {
+            writeSerial('fct-bat dumpreg');
+            logData('已發送 fct-bat dumpreg 命令。請檢查瀏覽器 Console 查看原始回傳數據。', 'System');
+        }
+
+        function handleBatSetIlimit() {
+            const value = parseInt(batIlimitInput.value.trim());
+            const MIN = 0;
+            const MAX = 100;
+
+            if (isNaN(value) || value < MIN || value > MAX) {
+                showModal('範圍錯誤：設定電流限制', `Input Current Limit (${value}) 輸入無效或超出範圍。請輸入 ${MIN} 到 ${MAX} mA 之間的整數。`);
+                return;
+            }
+            
+            // 1. 發送設定指令
+            writeSerial(`fct-bat ilimit ${value}`);
+            
+            // 2. [修改處] 在短暫延遲後，發送讀取指令來更新狀態
+            setTimeout(() => {
+                writeSerial('fct-bat ilimit'); // 讀取 Input Current Limit
+                logData('已自動發送 fct-bat ilimit 讀取指令以更新 Input Current Limit 狀態。', 'System');
+            }, 100); 
+        }
+
+        function handleBatChargerEnable() {
+            writeSerial('fct-bat charger enable');
+        }
+
+        function handleBatChargerDisable() {
+            writeSerial('fct-bat charger disable');
+        }
+        // --- END Battery Control Handlers ---
+
 
         // --- ALS Control Handlers ---
         function handleAlsDetect() {
@@ -1604,11 +1815,21 @@
         colorGInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
         colorBInput.addEventListener('input', updateLcdColorButtonsState); // <-- 觸發集中更新函數
         
-        // Event Listeners for NEW Button Control
+        // Event Listeners for Button Control
         buttonStartButton.addEventListener('click', handleButtonStart);
         buttonStopButton.addEventListener('click', handleButtonStop);
+        
+        // Event Listeners for Battery Control
+        batReadVoltageButton.addEventListener('click', handleBatReadVoltage);
+        batReadTempButton.addEventListener('click', handleBatReadTemp);
+        batReadIlimitButton.addEventListener('click', handleBatReadIlimit);
+        batDumpRegButton.addEventListener('click', handleBatDumpReg);
+        batSetIlimitButton.addEventListener('click', handleBatSetIlimit);
+        batChargerEnableButton.addEventListener('click', handleBatChargerEnable);
+        batChargerDisableButton.addEventListener('click', handleBatChargerDisable);
 
-        // Event Listeners for NEW ALS Control
+
+        // Event Listeners for ALS Control
         alsDetectButton.addEventListener('click', handleAlsDetect);
         alsResetButton.addEventListener('click', handleAlsReset);
         alsReadButton.addEventListener('click', handleAlsRead);
@@ -1699,6 +1920,14 @@
             if (event.key === 'Enter' && !setNrSamplesButton.disabled) {
                 event.preventDefault();
                 handleSetNrSamples();
+            }
+        });
+        
+        // Allow Enter key in Battery Ilimit input to trigger Set Ilimit
+        batIlimitInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !batSetIlimitButton.disabled) {
+                event.preventDefault();
+                handleBatSetIlimit();
             }
         });
 
