@@ -11,18 +11,15 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f7f7;
+            /* 調整主體佈局，不限制最大寬度，讓 mainLayout 決定寬度 */
             display: flex;
             justify-content: center;
             align-items: flex-start;
             min-height: 100vh;
-            padding-top: 2rem; 
+            padding-top: 1rem; /* 略微減少頂部填充 */
             padding-bottom: 2rem;
         }
-        .container {
-            width: 95%;
-            /* 保持緊湊的最大寬度 */
-            max-width: 600px; 
-        }
+        
         /* 確保右側欄位的兩個元件在兩欄佈局時能夠良好對齊 */
         .right-column-controls > div {
             min-height: fit-content; 
@@ -58,518 +55,549 @@
         .modal-overlay.open .modal-content {
             transform: scale(1);
         }
+
+        /* 確保在大螢幕上 sticky 屬性生效 */
+        @media (min-width: 1024px) {
+            .lg\:sticky {
+                position: sticky;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <div class="container bg-white shadow-xl rounded-xl p-5 md:p-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-5 border-b pb-2">
-            CF0F FCT設備控制
-        </h1>
-
-        <div class="mb-6 space-y-3">
-            <div id="status" class="p-3 rounded-lg text-sm font-medium transition-all duration-300 bg-yellow-100 text-yellow-700">
-                狀態：尚未連接。請注意，此功能需在 Chrome/Edge 瀏覽器中執行。
-            </div>
-
-            <button id="connectButton"
-                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-300 disabled:bg-gray-400">
-                連接序列埠 (COM Port)
-            </button>
-        </div>
-
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-700">系統環境資訊 (SysEnv)</h2>
-            <p class="text-sm text-gray-600">連線成功後會自動執行 `sysenv` 讀取並顯示結果。</p>
-
-            <div id="sysEnvDisplay" class="p-3 bg-white rounded-lg border border-gray-200 text-xs shadow-inner space-y-1">
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">MLB#:</span>
-                    <span id="sysEnv_mlb_hash" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">MLB Config:</span>
-                    <span id="sysEnv_mlbconfig" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">NL Model:</span>
-                    <span id="sysEnv_nlmodel" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">WIP#:</span>
-                    <span id="sysEnv_wip_hash" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">Housing Color:</span>
-                    <span id="sysEnv_housing_color" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">Build Date:</span>
-                    <span id="sysEnv_build_date" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">Serial#:</span>
-                    <span id="sysEnv_serial_hash" class="font-bold text-indigo-700">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">Build:</span>
-                    <span id="sysEnv_build" class="font-bold text-indigo-700">--</span>
-                </p>
-            </div>
-        </div>
-        <div class="md:flex md:space-x-4 mb-6">
-            
-            <div class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
-                <h2 class="text-lg font-semibold text-gray-700">TMR 讀取指令控制 (TMR)</h2>
-                
-                <div class="p-3 bg-gray-100 rounded-lg text-xs border border-gray-300 space-y-1">
-                    <p class="font-medium text-gray-700 border-b pb-1 mb-1">即時數據 (timestamp ADC1 ADC2 sensr_d dial_d)</p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600 font-medium">ADC1:</span>
-                        <span id="tmrADC1Display" class="font-bold text-blue-700">--</span>
-                    </p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600 font-medium">ADC2:</span>
-                        <span id="tmrADC2Display" class="font-bold text-blue-700">--</span>
-                    </p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600 font-medium">Sensor D:</span>
-                        <span id="tmrSensorDDisplay" class="font-bold text-blue-700">--</span>
-                    </p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600 font-medium">Dial D:</span>
-                        <span id="tmrDialDDisplay" class="font-bold text-blue-700">--</span>
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 gap-3">
-                    <div>
-                        <label for="intervalInput" class="block text-xs font-medium text-gray-700 mb-1">取樣間隔 (us)</label>
-                        <input type="number" id="intervalInput" value="1000" min="1"
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="微秒 (e.g., 1000)">
-                    </div>
-                    <div>
-                        <label for="numSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (0=無限)</label>
-                        <input type="number" id="numSamplesInput" value="0" min="0"
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="樣本數 (0 為無限)">
-                    </div>
-                </div>
-
-                <div class="flex space-x-3 pt-1">
-                    <button id="startReadingButton" disabled
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        開始讀取
-                    </button>
-                    <button id="stopReadingButton" disabled
-                        class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        中斷 (Ctrl-C)
-                    </button>
-                </div>
-            </div>
-            
-            <div class="w-full md:w-1/2 space-y-4 right-column-controls">
-                
-                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-yellow-50">
-                    <h2 class="text-lg font-semibold text-gray-700">Amber LED 控制</h2>
-                    <div class="flex space-x-3 pt-1">
-                        <button id="ledOnButton" disabled
-                            class="flex-grow bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            開啟 (fct-led amber on)
-                        </button>
-                        <button id="ledOffButton" disabled
-                            class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            關閉 (fct-led amber off)
-                        </button>
-                    </div>
-                </div>
-
-                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-purple-50">
-                    <h2 class="text-lg font-semibold text-gray-700">Buzzer/蜂鳴器控制</h2>
-                    
-                    <div class="grid grid-cols-1 gap-3">
-                        <div>
-                            <label for="freqInput" class="block text-xs font-medium text-gray-700 mb-1">頻率 (Hz)</label>
-                            <input type="number" id="freqInput" value="2000" min="1"
-                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                        </div>
-                        <div>
-                            <label for="dutyInput" class="block text-xs font-medium text-gray-700 mb-1">Duty (0-255)</label>
-                            <input type="number" id="dutyInput" value="128" min="0" max="255"
-                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                        </div>
-                    </div>
-
-                    <div class="flex space-x-3 pt-1">
-                        <button id="buzzerStartButton" disabled
-                            class="flex-grow bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            啟動 (fct-piezo start)
-                        </button>
-                        <button id="buzzerStopButton" disabled
-                            class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            停止 (fct-piezo stop)
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
-            <h2 class="text-lg font-semibold text-gray-700 mb-4">RHT 溫濕度感測器讀取</h2>
-            
-            <div class="md:flex md:space-x-4">
-                <div class="w-full md:w-1/2 space-y-3 mb-4 md:mb-0">
-                    <button id="readTempButton" disabled
-                        class="w-full bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        讀取溫度 (rht 0 read t)
-                    </button>
-                    <button id="readRHTButton" disabled
-                        class="w-full bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        讀取溫濕度 (rht 1 read rht)
-                    </button>
-                </div>
-                
-                <div class="w-full md:w-1/2 mt-0 p-3 bg-white rounded-lg border border-blue-200 text-sm shadow-inner">
-                    <p class="font-medium text-gray-700 mb-1 border-b pb-1">最新讀數:</p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600">溫度:</span> 
-                        <span id="tempDisplay" class="font-bold text-sky-800">--</span>
-                    </p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600">濕度:</span>
-                        <span id="rhDisplay" class="font-bold text-teal-800">--</span>
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
-            <h2 class="text-lg font-semibold text-gray-700">背光控制 (Backlight Control)</h2>
-            
-            <div class="flex space-x-3 pt-1">
-                <button id="blOnButton" disabled class="flex-grow bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    開啟 (fct-bl start)
-                </button>
-                <button id="blOffButton" disabled class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    關閉 (fct-bl stop)
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label for="blBrightnessInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 (0-255)</label>
-                    <div class="flex space-x-2">
-                        <input type="number" id="blBrightnessInput" value="255" min="0" max="255" 
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                        <button id="setBrightnessButton" disabled 
-                            class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                            設定
-                        </button>
-                    </div>
-                </div>
-                
-                <div>
-                    <label for="blNitsInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 Nits (0-1000)</label>
-                    <div class="flex space-x-2">
-                        <input type="number" id="blNitsInput" value="500" min="0" max="1000" 
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                        <button id="setNitsButton" disabled 
-                            class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                            設定
-                        </button>
-                    </div>
-                </div>
-                
-                <div>
-                    <label for="blCurrentPercentInput" class="block text-xs font-medium text-gray-700 mb-1">電流百分比 (0-100%)</label>
-                    <div class="flex space-x-2">
-                        <input type="number" id="blCurrentPercentInput" value="100" min="0" max="100" 
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                        <button id="setCurrentPercentButton" disabled 
-                            class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                            設定
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-green-50">
-            <h2 class="text-lg font-semibold text-gray-700">LCD 螢幕控制 (LCD Control)</h2>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button id="lcdStartButton" disabled class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    啟動 (lcd start)
-                </button>
-                <button id="lcdStopButton" disabled class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    停止 (lcd stop)
-                </button>
-                <button id="lcdSuspendButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    暫停 (lcd suspend)
-                </button>
-                <button id="lcdResumeButton" disabled class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    恢復 (lcd resume)
-                </button>
-            </div>
-
-            <div class="space-y-4 p-3 border border-green-200 rounded-lg bg-white shadow-inner">
-                <h3 class="text-md font-medium text-gray-700 border-b pb-1">顏色/圖案指令</h3>
-
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label for="colorRInput" class="block text-xs font-medium text-red-600 mb-1">R (0-255)</label>
-                        <input type="number" id="colorRInput" value="255" min="0" max="255" 
-                            class="w-full p-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                    </div>
-                    <div>
-                        <label for="colorGInput" class="block text-xs font-medium text-green-600 mb-1">G (0-255)</label>
-                        <input type="number" id="colorGInput" value="255" min="0" max="255" 
-                            class="w-full p-2 border border-green-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                    </div>
-                    <div>
-                        <label for="colorBInput" class="block text-xs font-medium text-blue-600 mb-1">B (0-255)</label>
-                        <input type="number" id="colorBInput" value="255" min="0" max="255" 
-                            class="w-full p-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                
-                <div class="mt-3">
-                    <p class="text-xs text-gray-600 mb-2">計算出的十六進制值: <span id="colorHexDisplay" class="font-mono font-bold text-lg text-gray-800">0xFFFFFF</span></p>
-                    <div class="flex space-x-3">
-                        <button id="lcdFillButton" disabled 
-                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            填滿顏色 (lcd fill)
-                        </button>
-                        <button id="lcdCrosshairButton" disabled 
-                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            十字線 (lcd crosshair)
-                        </button>
-                        <button id="lcdColorBarButton" disabled 
-                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                            顏色條 (lcd color_bar)
-                        </button>
-                    </div>
-                </div>
-
-                <div class="mt-4 pt-4 border-t border-green-200">
-                    <h4 class="text-sm font-medium text-gray-700 mb-2">Checkerboard 圖案</h4>
-                    <div class="flex space-x-3">
-                        <div class="flex-1">
-                            <label for="checkerSizeInput" class="block text-xs font-medium text-gray-700 mb-1">棋盤格大小 (size)</label>
-                            <input type="number" id="checkerSizeInput" value="10" min="1"
-                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                        </div>
-                        <button id="lcdCheckerButton" disabled 
-                            class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-auto">
-                            繪製棋盤格 (lcd checker)
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-orange-50">
-            <h2 class="text-lg font-semibold text-gray-700">按鈕測試控制 (Button Control)</h2>
-
-            <div class="md:flex md:space-x-4">
-                <div class="w-full md:w-1/2 space-y-3 mb-4 md:mb-0">
-                    <button id="buttonStartButton" disabled
-                        class="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        1. 開始記錄 (fct-button start-record)
-                    </button>
-                    <button id="buttonStopButton" disabled
-                        class="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        2. 停止/讀取 (fct-button stop-record)
-                    </button>
-                </div>
-
-                <div class="w-full md:w-1/2 mt-0 p-3 bg-white rounded-lg border border-orange-200 text-sm shadow-inner flex items-center justify-between">
-                    <span class="font-medium text-gray-700">按鈕循環次數 (Button Cycles):</span>
-                    <span id="buttonCyclesDisplay" class="font-bold text-orange-800 text-xl">--</span>
-                </div>
-            </div>
-        </div>
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-yellow-50">
-            <h2 class="text-lg font-semibold text-gray-700">電池控制 (Battery Control)</h2>
-
-            <div class="p-3 bg-white rounded-lg border border-yellow-200 text-sm shadow-inner space-y-2">
-                <h3 class="font-medium text-gray-700 border-b pb-1 mb-1">即時電壓/溫度/限制電流</h3>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">電壓 (mV):</span>
-                    <span id="batVoltageDisplay" class="font-bold text-yellow-800">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">溫度 (°C):</span>
-                    <span id="batTempDisplay" class="font-bold text-yellow-800">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">Input Limit (mA):</span>
-                    <span id="batIlimitDisplay" class="font-bold text-yellow-800">--</span>
-                </p>
-                <p class="flex justify-between">
-                    <span class="text-gray-600 font-medium">充電狀態 (Charger):</span>
-                    <span id="batChargerStatusDisplay" class="font-bold text-yellow-800">--</span>
-                </p>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button id="batReadVoltageButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    讀取電壓
-                </button>
-                <button id="batReadTempButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    讀取溫度
-                </button>
-                <button id="batReadIlimitButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    讀取限制電流
-                </button>
-                <button id="batDumpRegButton" disabled class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    Dump Register
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <h3 class="text-sm font-semibold text-gray-700 border-b pb-1">設定控制</h3>
-                
-                <div class="flex space-x-3 items-end">
-                    <div class="flex-1">
-                        <label for="batIlimitInput" class="block text-xs font-medium text-gray-700 mb-1">設定 Input Current Limit (0-100 mA)</label>
-                        <input type="number" id="batIlimitInput" value="100" min="0" max="100" 
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
-                    </div>
-                    <button id="batSetIlimitButton" disabled 
-                        class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                        設定電流
-                    </button>
-                </div>
-
-                <div class="flex space-x-3 pt-2">
-                    <button id="batChargerEnableButton" disabled 
-                        class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        充電開啟 (Enable)
-                    </button>
-                    <button id="batChargerDisableButton" disabled 
-                        class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                        充電關閉 (Disable)
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-purple-50">
-            <h2 class="text-lg font-semibold text-gray-700">ALS 環境光感測器控制 (TCS3410)</h2>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <button id="alsDetectButton" disabled class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    偵測 (tcs3410 detect)
-                </button>
-                <button id="alsResetButton" disabled class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
-                    重設 (tcs3410 reset)
-                </button>
-            </div>
-
-            <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
-                <h3 class="text-md font-medium text-gray-700 border-b pb-1">讀取控制 (tcs3410 read)</h3>
-                <div class="flex space-x-3">
-                    <div class="flex-1">
-                        <label for="alsReadSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (預設 1, 必須 >= 1)</label>
-                        <input type="number" id="alsReadSamplesInput" value="1" min="1"
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                    </div>
-                    <button id="alsReadButton" disabled 
-                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-auto">
-                        開始讀取
-                    </button>
-                </div>
-                </div>
-
-            <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
-                <h3 class="text-md font-medium text-gray-700 border-b pb-1">參數配置 (Gain/SampleTime/NrSamples)</h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                        <label for="alsGainInput" class="block text-xs font-medium text-gray-700 mb-1">增益 (Gain) (預設 128)</label>
-                        <div class="flex space-x-1">
-                            <input type="number" id="alsGainInput" value="128" min="1" max="4096" 
-                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                            <button id="setGainButton" disabled class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                                設定
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label for="alsSampleTimeInput" class="block text-xs font-medium text-gray-700 mb-1">取樣時間 (SampleTime) (預設 900)</label>
-                        <div class="flex space-x-1">
-                            <input type="number" id="alsSampleTimeInput" value="900" min="1"
-                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                            <button id="setSampleTimeButton" disabled class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                                設定
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label for="alsNrSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣次數 (NrSamples) (預設 400)</label>
-                        <div class="flex space-x-1">
-                            <input type="number" id="alsNrSamplesInput" value="400" min="1"
-                                class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                            <button id="setNrSamplesButton" disabled class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
-                                設定
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-3 bg-gray-100 rounded-lg text-xs border border-gray-300 space-y-1">
-                <h3 class="font-bold text-gray-700 border-b pb-1 mb-1">即時/最新 ALS 讀數 (Clear/R/G/B/WB)</h3>
-                <p class="flex justify-between text-gray-500 text-sm">
-                    <span>當前配置:</span>
-                    <span id="alsConfigDisplay" class="font-medium">
-                        Gain: <span class="font-bold text-purple-700" id="alsGainStatus">--</span>, 
-                        ST: <span class="font-bold text-purple-700" id="alsSampleTimeStatus">--</span>, 
-                        NrS: <span class="font-bold text-purple-700" id="alsNrSamplesStatus">--</span>
-                    </span>
-                </p>
-                <div class="grid grid-cols-6 gap-1 font-semibold text-gray-700 border-t pt-1 mt-1">
-                    <span>Clear1</span><span>Red</span><span>Blue</span><span>Clear2</span><span>Green</span><span>WB</span>
-                </div>
-                <div id="alsLatestDataRow" class="grid grid-cols-6 gap-1 text-sm font-mono text-blue-700">
-                    <span id="alsClear1">--</span>
-                    <span id="alsRed">--</span>
-                    <span id="alsBlue">--</span>
-                    <span id="alsClear2">--</span>
-                    <span id="alsGreen">--</span>
-                    <span id="alsWB">--</span>
-                </div>
-            </div>
-        </div>
-        <div class="p-4 bg-gray-50 rounded-lg mb-6">
-            <h2 class="text-lg font-semibold text-gray-700 mb-2">接收到的資料紀錄</h2>
-            <div id="dataLog" class="h-40 overflow-y-auto bg-gray-800 text-green-400 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap">
-                等待連接...
-            </div>
-            <div class="mt-3 flex space-x-3">
-                <button id="clearLogButton" class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300">
-                    清除紀錄
-                </button>
-                <button id="saveLogButton" class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300">
-                    儲存紀錄 (.txt)
-                </button>
-            </div>
-        </div>
-        
-        <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600">
-            <div class="flex justify-between items-center mb-2">
-                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.0 (新增 Battery Control)</span></p>
-                <p class="text-xs">最後更新日期: 2025.12.16</p>
-            </div>
-            <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
-            <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
-                <li>聯絡人: Neil Lai</li>
-                <li>電子郵件: <a href="mailto:neil.lai@luxshare-ict.com" class="text-blue-500 hover:text-blue-700 underline">neil.lai@luxshare-ict.com</a></li>
-                <li>Google Chat: <span class="text-blue-500">neil.lai@luxshare-ict.com</span></li>
-            </ul>
-        </div>
-
-    </div>
     
+    <div id="mainLayout" class="lg:flex lg:space-x-6 mx-auto w-full max-w-7xl px-5 md:px-6 py-5">
+
+        <div id="mainContent" class="lg:w-2/3 space-y-6">
+
+            <div class="bg-white shadow-xl rounded-xl p-5 md:p-6 space-y-6">
+                <h1 class="text-2xl font-bold text-gray-800 border-b pb-2">
+                    CF0F FCT設備控制
+                </h1>
+
+                <div class="space-y-3">
+                    <div id="status" class="p-3 rounded-lg text-sm font-medium transition-all duration-300 bg-yellow-100 text-yellow-700">
+                        狀態：尚未連接。請注意，此功能需在 Chrome/Edge 瀏覽器中執行。
+                    </div>
+
+                    <button id="connectButton"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-300 disabled:bg-gray-400">
+                        連接序列埠 (COM Port)
+                    </button>
+                </div>
+
+                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-700">系統環境資訊 (SysEnv)</h2>
+                    <p class="text-sm text-gray-600">連線成功後會自動執行 `sysenv` 讀取並顯示結果。</p>
+
+                    <div id="sysEnvDisplay" class="p-3 bg-white rounded-lg border border-gray-200 text-xs shadow-inner space-y-1">
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">MLB#:</span>
+                            <span id="sysEnv_mlb_hash" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">MLB Config:</span>
+                            <span id="sysEnv_mlbconfig" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">NL Model:</span>
+                            <span id="sysEnv_nlmodel" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">WIP#:</span>
+                            <span id="sysEnv_wip_hash" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">Housing Color:</span>
+                            <span id="sysEnv_housing_color" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">Build Date:</span>
+                            <span id="sysEnv_build_date" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">Serial#:</span>
+                            <span id="sysEnv_serial_hash" class="font-bold text-indigo-700">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">Build:</span>
+                            <span id="sysEnv_build" class="font-bold text-indigo-700">--</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-red-50">
+                    <h2 class="text-lg font-semibold text-gray-700">
+                        Command Line 模式
+                    </h2>
+                    <div class="flex space-x-3">
+                        <input type="text" id="commandInput"
+                            class="flex-grow p-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            placeholder="輸入序列埠指令 (例如: sysenv, dial start 1000 0)" disabled>
+                        <button id="sendCommandButton" disabled
+                            class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                            發送指令 (Enter)
+                        </button>
+                    </div>
+                </div>
+                <div class="md:flex md:space-x-4">
+                    
+                    <div class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
+                        <h2 class="text-lg font-semibold text-gray-700">TMR 讀取指令控制 (TMR)</h2>
+                        
+                        <div class="p-3 bg-gray-100 rounded-lg text-xs border border-gray-300 space-y-1">
+                            <p class="font-medium text-gray-700 border-b pb-1 mb-1">即時數據 (timestamp ADC1 ADC2 sensr_d dial_d)</p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 font-medium">ADC1:</span>
+                                <span id="tmrADC1Display" class="font-bold text-blue-700">--</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 font-medium">ADC2:</span>
+                                <span id="tmrADC2Display" class="font-bold text-blue-700">--</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 font-medium">Sensor D:</span>
+                                <span id="tmrSensorDDisplay" class="font-bold text-blue-700">--</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 font-medium">Dial D:</span>
+                                <span id="tmrDialDDisplay" class="font-bold text-blue-700">--</span>
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <div>
+                                <label for="intervalInput" class="block text-xs font-medium text-gray-700 mb-1">取樣間隔 (us)</label>
+                                <input type="number" id="intervalInput" value="1000" min="1"
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="微秒 (e.g., 1000)">
+                            </div>
+                            <div>
+                                <label for="numSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (0=無限)</label>
+                                <input type="number" id="numSamplesInput" value="0" min="0"
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="樣本數 (0 為無限)">
+                            </div>
+                        </div>
+
+                        <div class="flex space-x-3 pt-1">
+                            <button id="startReadingButton" disabled
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                開始讀取
+                            </button>
+                            <button id="stopReadingButton" disabled
+                                class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                中斷 (Ctrl-C)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-1/2 space-y-4 right-column-controls">
+                        
+                        <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-yellow-50">
+                            <h2 class="text-lg font-semibold text-gray-700">Amber LED 控制</h2>
+                            <div class="flex space-x-3 pt-1">
+                                <button id="ledOnButton" disabled
+                                    class="flex-grow bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    開啟 (fct-led amber on)
+                                </button>
+                                <button id="ledOffButton" disabled
+                                    class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    關閉 (fct-led amber off)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-purple-50">
+                            <h2 class="text-lg font-semibold text-gray-700">Buzzer/蜂鳴器控制</h2>
+                            
+                            <div class="grid grid-cols-1 gap-3">
+                                <div>
+                                    <label for="freqInput" class="block text-xs font-medium text-gray-700 mb-1">頻率 (Hz)</label>
+                                    <input type="number" id="freqInput" value="2000" min="1"
+                                        class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label for="dutyInput" class="block text-xs font-medium text-gray-700 mb-1">Duty (0-255)</label>
+                                    <input type="number" id="dutyInput" value="128" min="0" max="255"
+                                        class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                            </div>
+
+                            <div class="flex space-x-3 pt-1">
+                                <button id="buzzerStartButton" disabled
+                                    class="flex-grow bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    啟動 (fct-piezo start)
+                                </button>
+                                <button id="buzzerStopButton" disabled
+                                    class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    停止 (fct-piezo stop)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">RHT 溫濕度感測器讀取</h2>
+                    
+                    <div class="md:flex md:space-x-4">
+                        <div class="w-full md:w-1/2 space-y-3 mb-4 md:mb-0">
+                            <button id="readTempButton" disabled
+                                class="w-full bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                讀取溫度 (rht 0 read t)
+                            </button>
+                            <button id="readRHTButton" disabled
+                                class="w-full bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                讀取溫濕度 (rht 1 read rht)
+                            </button>
+                        </div>
+                        
+                        <div class="w-full md:w-1/2 mt-0 p-3 bg-white rounded-lg border border-blue-200 text-sm shadow-inner">
+                            <p class="font-medium text-gray-700 mb-1 border-b pb-1">最新讀數:</p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600">溫度:</span> 
+                                <span id="tempDisplay" class="font-bold text-sky-800">--</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600">濕度:</span>
+                                <span id="rhDisplay" class="font-bold text-teal-800">--</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
+                    <h2 class="text-lg font-semibold text-gray-700">背光控制 (Backlight Control)</h2>
+                    
+                    <div class="flex space-x-3 pt-1">
+                        <button id="blOnButton" disabled class="flex-grow bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            開啟 (fct-bl start)
+                        </button>
+                        <button id="blOffButton" disabled class="flex-grow bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            關閉 (fct-bl stop)
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label for="blBrightnessInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 (0-255)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="blBrightnessInput" value="255" min="0" max="255" 
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <button id="setBrightnessButton" disabled 
+                                    class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                    設定
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="blNitsInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 Nits (0-1000)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="blNitsInput" value="500" min="0" max="1000" 
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <button id="setNitsButton" disabled 
+                                    class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                    設定
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="blCurrentPercentInput" class="block text-xs font-medium text-gray-700 mb-1">電流百分比 (0-100%)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="blCurrentPercentInput" value="100" min="0" max="100" 
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <button id="setCurrentPercentButton" disabled 
+                                    class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                    設定
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-green-50">
+                    <h2 class="text-lg font-semibold text-gray-700">LCD 螢幕控制 (LCD Control)</h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button id="lcdStartButton" disabled class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            啟動 (lcd start)
+                        </button>
+                        <button id="lcdStopButton" disabled class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            停止 (lcd stop)
+                        </button>
+                        <button id="lcdSuspendButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            暫停 (lcd suspend)
+                        </button>
+                        <button id="lcdResumeButton" disabled class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            恢復 (lcd resume)
+                        </button>
+                    </div>
+
+                    <div class="space-y-4 p-3 border border-green-200 rounded-lg bg-white shadow-inner">
+                        <h3 class="text-md font-medium text-gray-700 border-b pb-1">顏色/圖案指令</h3>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label for="colorRInput" class="block text-xs font-medium text-red-600 mb-1">R (0-255)</label>
+                                <input type="number" id="colorRInput" value="255" min="0" max="255" 
+                                    class="w-full p-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            </div>
+                            <div>
+                                <label for="colorGInput" class="block text-xs font-medium text-green-600 mb-1">G (0-255)</label>
+                                <input type="number" id="colorGInput" value="255" min="0" max="255" 
+                                    class="w-full p-2 border border-green-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            </div>
+                            <div>
+                                <label for="colorBInput" class="block text-xs font-medium text-blue-600 mb-1">B (0-255)</label>
+                                <input type="number" id="colorBInput" value="255" min="0" max="255" 
+                                    class="w-full p-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <p class="text-xs text-gray-600 mb-2">計算出的十六進制值: <span id="colorHexDisplay" class="font-mono font-bold text-lg text-gray-800">0xFFFFFF</span></p>
+                            <div class="flex space-x-3">
+                                <button id="lcdFillButton" disabled 
+                                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    填滿顏色 (lcd fill)
+                                </button>
+                                <button id="lcdCrosshairButton" disabled 
+                                    class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    十字線 (lcd crosshair)
+                                </button>
+                                <button id="lcdColorBarButton" disabled 
+                                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                    顏色條 (lcd color_bar)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-green-200">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Checkerboard 圖案</h4>
+                            <div class="flex space-x-3">
+                                <div class="flex-1">
+                                    <label for="checkerSizeInput" class="block text-xs font-medium text-gray-700 mb-1">棋盤格大小 (size)</label>
+                                    <input type="number" id="checkerSizeInput" value="10" min="1"
+                                        class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                </div>
+                                <button id="lcdCheckerButton" disabled 
+                                    class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-auto">
+                                    繪製棋盤格 (lcd checker)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-orange-50">
+                    <h2 class="text-lg font-semibold text-gray-700">按鈕測試控制 (Button Control)</h2>
+
+                    <div class="md:flex md:space-x-4">
+                        <div class="w-full md:w-1/2 space-y-3 mb-4 md:mb-0">
+                            <button id="buttonStartButton" disabled
+                                class="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                1. 開始記錄 (fct-button start-record)
+                            </button>
+                            <button id="buttonStopButton" disabled
+                                class="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                2. 停止/讀取 (fct-button stop-record)
+                            </button>
+                        </div>
+
+                        <div class="w-full md:w-1/2 mt-0 p-3 bg-white rounded-lg border border-orange-200 text-sm shadow-inner flex items-center justify-between">
+                            <span class="font-medium text-gray-700">按鈕循環次數 (Button Cycles):</span>
+                            <span id="buttonCyclesDisplay" class="font-bold text-orange-800 text-xl">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-yellow-50">
+                    <h2 class="text-lg font-semibold text-gray-700">電池控制 (Battery Control)</h2>
+
+                    <div class="p-3 bg-white rounded-lg border border-yellow-200 text-sm shadow-inner space-y-2">
+                        <h3 class="font-medium text-gray-700 border-b pb-1 mb-1">即時電壓/溫度/限制電流</h3>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">電壓 (mV):</span>
+                            <span id="batVoltageDisplay" class="font-bold text-yellow-800">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">溫度 (°C):</span>
+                            <span id="batTempDisplay" class="font-bold text-yellow-800">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">Input Limit (mA):</span>
+                            <span id="batIlimitDisplay" class="font-bold text-yellow-800">--</span>
+                        </p>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">充電狀態 (Charger):</span>
+                            <span id="batChargerStatusDisplay" class="font-bold text-yellow-800">--</span>
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button id="batReadVoltageButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            讀取電壓
+                        </button>
+                        <button id="batReadTempButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            讀取溫度
+                        </button>
+                        <button id="batReadIlimitButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            讀取限制電流
+                        </button>
+                        <button id="batDumpRegButton" disabled class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            Dump Register
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-semibold text-gray-700 border-b pb-1">設定控制</h3>
+                        
+                        <div class="flex space-x-3 items-end">
+                            <div class="flex-1">
+                                <label for="batIlimitInput" class="block text-xs font-medium text-gray-700 mb-1">設定 Input Current Limit (0-100 mA)</label>
+                                <input type="number" id="batIlimitInput" value="100" min="0" max="100" 
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
+                            </div>
+                            <button id="batSetIlimitButton" disabled 
+                                class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                設定電流
+                            </button>
+                        </div>
+
+                        <div class="flex space-x-3 pt-2">
+                            <button id="batChargerEnableButton" disabled 
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                充電開啟 (Enable)
+                            </button>
+                            <button id="batChargerDisableButton" disabled 
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                充電關閉 (Disable)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-purple-50">
+                    <h2 class="text-lg font-semibold text-gray-700">ALS 環境光感測器控制 (TCS3410)</h2>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="alsDetectButton" disabled class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            偵測 (tcs3410 detect)
+                        </button>
+                        <button id="alsResetButton" disabled class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            重設 (tcs3410 reset)
+                        </button>
+                    </div>
+
+                    <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
+                        <h3 class="text-md font-medium text-gray-700 border-b pb-1">讀取控制 (tcs3410 read)</h3>
+                        <div class="flex space-x-3">
+                            <div class="flex-1">
+                                <label for="alsReadSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣數量 (預設 1, 必須 >= 1)</label>
+                                <input type="number" id="alsReadSamplesInput" value="1" min="1"
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            </div>
+                            <button id="alsReadButton" disabled 
+                                class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-auto">
+                                開始讀取
+                            </button>
+                        </div>
+                        </div>
+
+                    <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
+                        <h3 class="text-md font-medium text-gray-700 border-b pb-1">參數配置 (Gain/SampleTime/NrSamples)</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label for="alsGainInput" class="block text-xs font-medium text-gray-700 mb-1">增益 (Gain) (預設 128)</label>
+                                <div class="flex space-x-1">
+                                    <input type="number" id="alsGainInput" value="128" min="1" max="4096" 
+                                        class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <button id="setGainButton" disabled class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                        設定
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="alsSampleTimeInput" class="block text-xs font-medium text-gray-700 mb-1">取樣時間 (SampleTime) (預設 900)</label>
+                                <div class="flex space-x-1">
+                                    <input type="number" id="alsSampleTimeInput" value="900" min="1"
+                                        class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <button id="setSampleTimeButton" disabled class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                        設定
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="alsNrSamplesInput" class="block text-xs font-medium text-gray-700 mb-1">取樣次數 (NrSamples) (預設 400)</label>
+                                <div class="flex space-x-1">
+                                    <input type="number" id="alsNrSamplesInput" value="400" min="1"
+                                        class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <button id="setNrSamplesButton" disabled class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
+                                        設定
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-gray-100 rounded-lg text-xs border border-gray-300 space-y-1">
+                        <h3 class="font-bold text-gray-700 border-b pb-1 mb-1">即時/最新 ALS 讀數 (Clear/R/G/B/WB)</h3>
+                        <p class="flex justify-between text-gray-500 text-sm">
+                            <span>當前配置:</span>
+                            <span id="alsConfigDisplay" class="font-medium">
+                                Gain: <span class="font-bold text-purple-700" id="alsGainStatus">--</span>, 
+                                ST: <span class="font-bold text-purple-700" id="alsSampleTimeStatus">--</span>, 
+                                NrS: <span class="font-bold text-purple-700" id="alsNrSamplesStatus">--</span>
+                            </span>
+                        </p>
+                        <div class="grid grid-cols-6 gap-1 font-semibold text-gray-700 border-t pt-1 mt-1">
+                            <span>Clear1</span><span>Red</span><span>Blue</span><span>Clear2</span><span>Green</span><span>WB</span>
+                        </div>
+                        <div id="alsLatestDataRow" class="grid grid-cols-6 gap-1 text-sm font-mono text-blue-700">
+                            <span id="alsClear1">--</span>
+                            <span id="alsRed">--</span>
+                            <span id="alsBlue">--</span>
+                            <span id="alsClear2">--</span>
+                            <span id="alsGreen">--</span>
+                            <span id="alsWB">--</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div id="logContainer" class="lg:w-1/3">
+            <div class="lg:sticky lg:top-4 lg:py-0 pt-4"> 
+                
+                <div class="p-4 bg-gray-50 rounded-xl shadow-xl border border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-2">接收到的資料紀錄</h2>
+                    <div id="dataLog" class="h-96 overflow-y-auto bg-gray-800 text-green-400 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap">
+                        等待連接...
+                    </div>
+                    <div class="mt-3 flex space-x-3">
+                        <button id="clearLogButton" class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300">
+                            清除紀錄
+                        </button>
+                        <button id="saveLogButton" class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-3 rounded-lg transition duration-300">
+                            儲存紀錄 (.txt)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.3 (Fixed Modal/Button)</span></p>
+                        <p class="text-xs">最後更新日期: 2025.12.16</p>
+                    </div>
+                    <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
+                    <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
+                        <li>聯絡人: Neil Lai</li>
+                        <li>電子郵件: <a href="mailto:neil.lai@luxshare-ict.com" class="text-blue-500 hover:text-blue-700 underline">neil.lai@luxshare-ict.com</a></li>
+                        <li>Google Chat: <span class="text-blue-500">neil.lai@luxshare-ict.com</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
     <div id="customModal" class="modal-overlay hidden opacity-0 pointer-events-none" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
@@ -594,6 +622,10 @@
         const dataLog = document.getElementById('dataLog');
         const clearLogButton = document.getElementById('clearLogButton');
         const saveLogButton = document.getElementById('saveLogButton');
+        
+        // Command Line Elements (NEW)
+        const commandInput = document.getElementById('commandInput');
+        const sendCommandButton = document.getElementById('sendCommandButton');
         
         // Modal Elements
         const customModal = document.getElementById('customModal');
@@ -820,15 +852,37 @@
             lcdCrosshairButton.disabled = !isColorValid;
             lcdCheckerButton.disabled = !isColorValid;
         }
+        
+        /**
+         * 重設 SysEnv 顯示為預設值
+         */
+        function resetSysEnvDisplay() {
+            sysEnv_mlb_hash.textContent = '--';
+            sysEnv_mlbconfig.textContent = '--';
+            sysEnv_nlmodel.textContent = '--';
+            sysEnv_wip_hash.textContent = '--';
+            sysEnv_housing_color.textContent = '--';
+            sysEnv_build_date.textContent = '--';
+            sysEnv_serial_hash.textContent = '--';
+            sysEnv_build.textContent = '--';
+        }
+
 
         // --- Control Enable/Disable Functions ---
 
         // Function 1: Disable all controls (Used ONLY when disconnecting)
         function disableAllControls() {
+            // Command Line Controls (NEW)
+            commandInput.disabled = true;
+            sendCommandButton.disabled = true;
+            
+            // TMR controls
             startReadingButton.disabled = true;
             stopReadingButton.disabled = true;
             intervalInput.disabled = false;
             numSamplesInput.disabled = false; 
+            
+            // Other controls
             ledOnButton.disabled = true;
             ledOffButton.disabled = true;
             freqInput.disabled = false;
@@ -882,10 +936,17 @@
             setSampleTimeButton.disabled = true;
             alsNrSamplesInput.disabled = false;
             setNrSamplesButton.disabled = true;
+
+            // Reset SysEnv Display
+            resetSysEnvDisplay();
         }
 
         // Function 2: Enable controls after successful connection (Idle state)
         function enableTmrStartControls() {
+            // Command Line Controls (NEW)
+            commandInput.disabled = false;
+            sendCommandButton.disabled = false;
+            
             // TMR controls
             startReadingButton.disabled = false;
             stopReadingButton.disabled = true;
@@ -920,7 +981,8 @@
             
             // Enable Button Controls
             buttonStartButton.disabled = false;
-            buttonStopButton.disabled = false;
+            // *** [修改 2] 預設停止按鈕是啟用的 ***
+            buttonStopButton.disabled = false; 
             isButtonRecording = false;
 
             // Enable Battery Controls
@@ -948,6 +1010,10 @@
 
         // Function 3: Set controls when TMR, ALS, or Button is running (Active state)
         function setTmrActiveControls() {
+            // Command Line Controls (NEW)
+            commandInput.disabled = true;
+            sendCommandButton.disabled = true;
+            
             // TMR controls
             startReadingButton.disabled = true;
             stopReadingButton.disabled = false; // ONLY the stop button is active
@@ -982,7 +1048,7 @@
 
             // Disable Button Controls (會被 handleButtonStart 覆寫)
             buttonStartButton.disabled = true;
-            buttonStopButton.disabled = true;
+            buttonStopButton.disabled = true; // 預設鎖定為禁用
             
             // Disable Battery Controls (Ensure lock)
             batReadVoltageButton.disabled = true;
@@ -1259,7 +1325,8 @@
                                     if (isButtonRecording && chargerSetMatch[1] === '0') {
                                          // 讓 Button 的邏輯去處理
                                     } else if (chargerSetMatch[1] === '0') {
-                                        //showModal('✅ 設定成功', `指令執行成功 (result = 0)。`);
+                                        // *** [修改 1] 移除 result = 0 成功時的 Modal 彈窗 ***
+                                        // showModal('✅ 設定成功', `指令執行成功 (result = 0)。`); 
                                         logData('✅ 設定成功。', 'System');
                                         
                                         // 立即讀取狀態，更新 UI
@@ -1443,6 +1510,16 @@
                 }
             }
         }
+        
+        // --- Command Line Handler (NEW) ---
+        function handleSendCommand() {
+            const command = commandInput.value.trim();
+            if (command) {
+                writeSerial(command);
+                commandInput.value = ''; // Clear input after sending
+            }
+        }
+        // --- END Command Line Handler ---
 
         // --- TMR Control Handlers ---
         function handleStartReading() {
@@ -1637,7 +1714,7 @@
             // 1. 禁用所有其他控制項（進入鎖定狀態）
             setTmrActiveControls(); 
 
-            // 2. [修正] 覆寫通用鎖定，確保「停止記錄」按鈕在記錄狀態中可以被按下
+            // 2. 覆寫通用鎖定，確保「停止記錄」按鈕在記錄狀態中可以被按下
             buttonStopButton.disabled = false;
             logData('系統鎖定：已進入按鈕測試模式。', 'System');
         }
@@ -1687,7 +1764,7 @@
             // 1. 發送設定指令
             writeSerial(`fct-bat ilimit ${value}`);
             
-            // 2. [修改處] 在短暫延遲後，發送讀取指令來更新狀態
+            // 2. 在短暫延遲後，發送讀取指令來更新狀態
             setTimeout(() => {
                 writeSerial('fct-bat ilimit'); // 讀取 Input Current Limit
                 logData('已自動發送 fct-bat ilimit 讀取指令以更新 Input Current Limit 狀態。', 'System');
@@ -1776,7 +1853,17 @@
         });
         
         saveLogButton.addEventListener('click', saveLog);
+        
+        // Event Listeners for Command Line (NEW)
+        sendCommandButton.addEventListener('click', handleSendCommand);
 
+        commandInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !sendCommandButton.disabled) {
+                event.preventDefault();
+                handleSendCommand();
+            }
+        });
+        
         // Event Listeners for TMR Control
         startReadingButton.addEventListener('click', handleStartReading);
         stopReadingButton.addEventListener('click', handleStopReading);
