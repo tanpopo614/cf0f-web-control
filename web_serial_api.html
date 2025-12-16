@@ -62,6 +62,19 @@
                 position: sticky;
             }
         }
+        
+        /* 新增橫向導航按鈕樣式 (取代舊的 quick-nav-link) */
+        .quick-nav-link-horizontal {
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            transition: background-color 0.15s;
+            white-space: nowrap;
+            /* 確保按鈕之間有間距 */
+            display: inline-block;
+        }
+
     </style>
 </head>
 <body>
@@ -86,7 +99,7 @@
                     </button>
                 </div>
 
-                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
+                <div id="sectionSysEnv" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
                     <h2 class="text-lg font-semibold text-gray-700">系統環境資訊 (SysEnv)</h2>
                     <p class="text-sm text-gray-600">連線成功後會自動執行 `sysenv` 讀取並顯示結果。</p>
 
@@ -125,7 +138,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-red-50">
+                <div id="sectionCommandLine" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-red-50">
                     <h2 class="text-lg font-semibold text-gray-700">
                         Command Line 模式
                     </h2>
@@ -141,7 +154,7 @@
                 </div>
                 <div class="md:flex md:space-x-4">
                     
-                    <div class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
+                    <div id="sectionTMR" class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
                         <h2 class="text-lg font-semibold text-gray-700">TMR 讀取指令控制 (TMR)</h2>
                         
                         <div class="p-3 bg-gray-100 rounded-lg text-xs border border-gray-300 space-y-1">
@@ -191,7 +204,7 @@
                     
                     <div class="w-full md:w-1/2 space-y-4 right-column-controls">
                         
-                        <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-yellow-50">
+                        <div id="sectionLED" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-yellow-50">
                             <h2 class="text-lg font-semibold text-gray-700">Amber LED 控制</h2>
                             <div class="flex space-x-3 pt-1">
                                 <button id="ledOnButton" disabled
@@ -205,7 +218,7 @@
                             </div>
                         </div>
 
-                        <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-purple-50">
+                        <div id="sectionBuzzer" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-purple-50">
                             <h2 class="text-lg font-semibold text-gray-700">Buzzer/蜂鳴器控制</h2>
                             
                             <div class="grid grid-cols-1 gap-3">
@@ -235,7 +248,7 @@
                     </div>
                 </div>
                 
-                <div class="p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
+                <div id="sectionRHT" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">RHT 溫濕度感測器讀取</h2>
                     
                     <div class="md:flex md:space-x-4">
@@ -264,7 +277,7 @@
                     </div>
                 </div>
                 
-                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
+                <div id="sectionBacklight" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
                     <h2 class="text-lg font-semibold text-gray-700">背光控制 (Backlight Control)</h2>
                     
                     <div class="flex space-x-3 pt-1">
@@ -315,7 +328,7 @@
                     </div>
                 </div>
 
-                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-green-50">
+                <div id="sectionLCD" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-green-50">
                     <h2 class="text-lg font-semibold text-gray-700">LCD 螢幕控制 (LCD Control)</h2>
                     
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -389,7 +402,7 @@
                     </div>
                 </div>
 
-                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-orange-50">
+                <div id="sectionButton" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-orange-50">
                     <h2 class="text-lg font-semibold text-gray-700">按鈕測試控制 (Button Control)</h2>
 
                     <div class="md:flex md:space-x-4">
@@ -410,7 +423,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-yellow-50">
+                <div id="sectionBattery" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-yellow-50">
                     <h2 class="text-lg font-semibold text-gray-700">電池控制 (Battery Control)</h2>
 
                     <div class="p-3 bg-white rounded-lg border border-yellow-200 text-sm shadow-inner space-y-2">
@@ -475,7 +488,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="p-4 border border-gray-200 rounded-lg space-y-4 bg-purple-50">
+                <div id="sectionALS" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-purple-50">
                     <h2 class="text-lg font-semibold text-gray-700">ALS 環境光感測器控制 (TCS3410)</h2>
                     
                     <div class="grid grid-cols-2 gap-3">
@@ -585,8 +598,8 @@
 
                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">
                     <div class="flex justify-between items-center mb-2">
-                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.4 (Removed Charger Status Auto Read)</span></p>
-                        <p class="text-xs">最後更新日期: 2025.12.16</p>
+                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.6 (Horizontal Quick Nav)</span></p>
+                        <p class="text-xs">最後更新日期: 2025.12.17</p>
                     </div>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
@@ -595,9 +608,47 @@
                         <li>Google Chat: <span class="text-blue-500">neil.lai@luxshare-ict.com</span></li>
                     </ul>
                 </div>
-            </div>
+                
+                <div id="quickNavHorizontal" class="mt-6 p-4 bg-white rounded-xl shadow-xl border border-gray-100"> 
+                    <h4 class="text-sm font-bold text-gray-700 border-b pb-2 mb-2">快速導航</h4>
+
+                    <div class="flex flex-wrap gap-2 justify-start"> 
+                        
+                        <a href="#mainLayout" class="quick-nav-link-horizontal bg-gray-100 hover:bg-indigo-100 text-indigo-700">主控台</a>
+                        
+                        <a href="#sectionSysEnv" class="quick-nav-link-horizontal bg-gray-100 hover:bg-gray-200 text-gray-700">SysEnv</a>
+                        
+                        <a href="#sectionCommandLine" class="quick-nav-link-horizontal bg-gray-100 hover:bg-red-100 text-red-700">CLI</a>
+
+                        <a href="#sectionTMR" class="quick-nav-link-horizontal bg-gray-100 hover:bg-blue-100 text-blue-700">TMR</a>
+
+                        <a href="#sectionLED" class="quick-nav-link-horizontal bg-gray-100 hover:bg-yellow-100 text-yellow-700">LED</a>
+                        
+                        <a href="#sectionBuzzer" class="quick-nav-link-horizontal bg-gray-100 hover:bg-purple-100 text-purple-700">Buzzer</a>
+                        
+                        <a href="#sectionRHT" class="quick-nav-link-horizontal bg-gray-100 hover:bg-teal-100 text-teal-700">RHT</a>
+                        
+                        <a href="#sectionBacklight" class="quick-nav-link-horizontal bg-gray-100 hover:bg-red-100 text-red-700">背光</a>
+                        
+                        <a href="#sectionLCD" class="quick-nav-link-horizontal bg-gray-100 hover:bg-green-100 text-green-700">LCD</a>
+                        
+                        <a href="#sectionButton" class="quick-nav-link-horizontal bg-gray-100 hover:bg-orange-100 text-orange-700">按鈕</a>
+                        
+                        <a href="#sectionBattery" class="quick-nav-link-horizontal bg-gray-100 hover:bg-yellow-100 text-yellow-700">電池</a>
+                        
+                        <a href="#sectionALS" class="quick-nav-link-horizontal bg-gray-100 hover:bg-purple-100 text-purple-700">ALS</a>
+                        
+                        <a href="#logContainer" class="quick-nav-link-horizontal bg-gray-100 hover:bg-gray-200 text-gray-600">紀錄</a>
+                    </div>
+                </div>
+                </div>
         </div>
         </div>
+    <button id="backToTopBtn" class="fixed bottom-6 right-6 p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition duration-300 hidden z-50" title="回到頂部">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
     <div id="customModal" class="modal-overlay hidden opacity-0 pointer-events-none" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
@@ -981,7 +1032,6 @@
             
             // Enable Button Controls
             buttonStartButton.disabled = false;
-            // *** [修改 2] 預設停止按鈕是啟用的 ***
             buttonStopButton.disabled = false; 
             isButtonRecording = false;
 
@@ -1325,15 +1375,8 @@
                                     if (isButtonRecording && chargerSetMatch[1] === '0') {
                                          // 讓 Button 的邏輯去處理
                                     } else if (chargerSetMatch[1] === '0') {
-                                        // *** [修改 1] 移除 result = 0 成功時的 Modal 彈窗 ***
-                                        // showModal('✅ 設定成功', `指令執行成功 (result = 0)。`); 
+                                        // 移除自動讀取充電器狀態的指令
                                         logData('✅ 設定成功。', 'System');
-                                        
-                                        // *** [修改 3] 移除自動讀取充電器狀態的指令 ***
-                                        // 1332-1333 行:
-                                        // writeSerial('fct-bat charger status'); 
-                                        // *** 移除結束 ***
-
                                     } else {
                                         showModal('❌ 設定失敗', `指令回傳錯誤碼: ${chargerSetMatch[1]}。`);
                                         logData(`❌ 設定失敗: ${normalizedText}`, 'System');
@@ -2019,6 +2062,46 @@
                 handleBatSetIlimit();
             }
         });
+        
+        // --- NEW Navigation and Scroll Logic (Removed QuickNav related logic, kept Back to Top) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Smooth scroll for all anchor links starting with '#'
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const targetId = this.getAttribute('href');
+                    if (targetId && targetId !== '#') {
+                         e.preventDefault();
+                         // 捲動到目標 ID，使用 smooth 效果
+                         document.querySelector(targetId).scrollIntoView({
+                             behavior: 'smooth',
+                             block: 'start', // 捲動到元素的頂部
+                             inline: 'nearest'
+                         });
+                    }
+                });
+            });
+
+            const backToTopBtn = document.getElementById('backToTopBtn');
+
+            // Show/Hide Back to Top Button
+            window.addEventListener('scroll', () => {
+                // Show button if scrolled past the first 300px
+                if (window.scrollY > 300) {
+                    backToTopBtn.classList.remove('hidden');
+                } else {
+                    backToTopBtn.classList.add('hidden');
+                }
+            });
+
+            // Back to Top functionality (smooth scroll to top)
+            backToTopBtn.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        });
+        // --- END NEW Navigation and Scroll Logic ---
 
         // Initial state setup
         window.onload = () => {
