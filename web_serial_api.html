@@ -583,12 +583,9 @@
                         <h3 class="font-medium text-gray-700 border-b pb-1 mb-1">即時狀態</h3>
                         <p class="flex justify-between">
                             <span class="text-gray-600 font-medium">驅動狀態:</span>
-                            <span id="wifiDriverStatus" class="font-bold text-red-800">未初始化</span>
+                            <span id="wifiDriverStatus" class="font-bold text-gray-500">--</span>
                         </p>
-                        <p class="flex justify-between">
-                            <span class="text-gray-600 font-medium">連線狀態:</span>
-                            <span id="wifiConnStatus" class="font-bold text-cyan-800">--</span>
-                        </p>
+                        
                         <p class="flex justify-between">
                             <span class="text-gray-600 font-medium">IP 地址:</span>
                             <span id="wifiIPAddress" class="font-bold text-cyan-800">--</span>
@@ -620,7 +617,14 @@
                             <div>
                                 <label for="wifiSSIDInput" class="block text-xs font-medium text-gray-700 mb-1">SSID</label>
                                 <input type="text" id="wifiSSIDInput" value="" 
-                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" placeholder="輸入 Wi-Fi 名稱">
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" list="ssid-list" placeholder="手動輸入或掃描後選擇">
+                                <datalist id="ssid-list"></datalist>
+                            </div>
+                            <div>
+                                <label for="wifiSecurityInput" class="block text-xs font-medium text-gray-700 mb-1">Security Type</label>
+                                <select id="wifiSecurityInput" class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="0">0 (Open)</option><option value="1">1 (WEP)</option><option value="2">2 (WPA-PSK)</option><option value="3">3 (WPA2-PSK)</option><option value="4">4 (WPA/WPA2-PSK)</option><option value="5">5 (WPA3-PSK)</option>
+                                </select>
                             </div>
                             <div>
                                 <label for="wifiPasswordInput" class="block text-xs font-medium text-gray-700 mb-1">Password</label>
@@ -858,7 +862,7 @@
 
         // === Wi-Fi Control Elements (NEW) ===
         const wifiDriverStatus = document.getElementById('wifiDriverStatus');
-        const wifiConnStatus = document.getElementById('wifiConnStatus');
+        // const wifiConnStatus = document.getElementById('wifiConnStatus');
         const wifiIPAddress = document.getElementById('wifiIPAddress');
 
         const staStateButton = document.getElementById('staStateButton');
@@ -874,6 +878,9 @@
         let port; 
         let reader;
         let keepReading = false;
+        let isScanning = false;
+        let isWifiInitialized = false;
+        let isWifiBusy = false;
         let lineBuffer = ''; 
         let isButtonRecording = false; // 追蹤按鈕是否正在記錄狀態
         let lastSentCommand = ''; // NEW: Global variable to track the last sent command for Wi-Fi auto-init logic.
@@ -997,8 +1004,8 @@
             wifiDriverStatus.textContent = '未初始化';
             wifiDriverStatus.classList.remove('text-green-800');
             wifiDriverStatus.classList.add('text-red-800');
-            wifiConnStatus.textContent = '--';
-            wifiConnStatus.classList.remove('text-green-800', 'text-orange-800');
+            // wifiConnStatus.textContent = '--';
+            // wifiConnStatus.classList.remove('text-green-800', 'text-orange-800');
             wifiIPAddress.textContent = '--';
         }
 
@@ -1355,6 +1362,77 @@
 
                             if (cleanedLine.length > 0) {
                                 let normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
+                                // --- Wi-Fi Scan & IP & Driver State ---
+                                let wifiHandled = false;
+
+                                if (isScanning) {
+                                    const match = normalizedText.match(/\bSSID\s*:\s*(.+)/i);
+                                    if (match) {
+                                        let finalSSID = match[1].trim();
+                                        const bssidIndex = finalSSID.toUpperCase().indexOf('BSSID');
+                                        if (bssidIndex !== -1) {
+                                            finalSSID = finalSSID.substring(0, bssidIndex).trim();
+                                        }
+                                        if (finalSSID.length > 0) {
+                                            const ssidDatalist = document.getElementById('ssid-list');
+                                            if (ssidDatalist && !Array.from(ssidDatalist.options).some(o => o.value === finalSSID)) {
+                                                const option = document.createElement('option');
+                                                option.value = finalSSID;
+                                                ssidDatalist.appendChild(option);
+                                            }
+                                        }
+                                        wifiHandled = true;
+                                    }
+                                }
+
+                                if (normalizedText.includes('Network ready IP:')) {
+                                    const ipMatch = normalizedText.match(/IP:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+                                    if (ipMatch) {
+                                        const ipAddress = ipMatch[1];
+                                        showModal('連線成功', `已取得 IP 位址: ${ipAddress}`);
+                                        const ipDisplay = document.getElementById('wifiIPAddress');
+                                        if (ipDisplay) ipDisplay.textContent = ipAddress;
+                                    }
+                                    wifiHandled = true;
+                                }
+
+                                if (normalizedText.includes('STA_DISCONNECTED')) {
+                                    const ipDisplay = document.getElementById('wifiIPAddress');
+                                    if (ipDisplay) ipDisplay.textContent = '--';
+                                    wifiHandled = true; 
+                                }
+
+                                const driverStateDisplay = document.getElementById('wifiDriverStatus');
+                                if (driverStateDisplay) {
+                                    if (normalizedText.includes('WiFi Driver is not initialized') || 
+                                        normalizedText.includes('result = -19')) {
+                                        driverStateDisplay.textContent = '未初始化';
+                                        driverStateDisplay.classList.remove('text-green-600', 'text-gray-500');
+                                        driverStateDisplay.classList.add('text-red-800');
+                                        isWifiInitialized = false;
+                                        document.getElementById('staScanButton').disabled = true;
+                                        document.getElementById('staConnectButton').disabled = true;
+                                        wifiHandled = true;
+                                    } 
+                                    else if (normalizedText.includes('mhd_sta_get_state() returned 0') || 
+                                             normalizedText.includes('mhd_module_init() returned error 0')) {
+                                        driverStateDisplay.textContent = '初始化完成';
+                                        driverStateDisplay.classList.remove('text-red-800', 'text-gray-500');
+                                        driverStateDisplay.classList.add('text-green-600');
+                                        isWifiInitialized = true;
+                                        if (!isWifiBusy) {
+                                            document.getElementById('staScanButton').disabled = false;
+                                            document.getElementById('staConnectButton').disabled = false;
+                                        }
+                                        wifiHandled = true;
+                                    }
+                                }
+
+                                if (wifiHandled) {
+                                    logData(normalizedText, 'Received');
+                                    continue;
+                                }
+
                                 
                                 // TMR Parsing Logic
                                 // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv/Battery/Wi-Fi 的標籤式訊息
@@ -1577,18 +1655,18 @@
                                     if (stateMatch) {
                                         const state = stateMatch[1];
                                         if (state === 'STA_CONNECTED') {
-                                            wifiConnStatus.textContent = '已連線 (STA_CONNECTED)';
-                                            wifiConnStatus.classList.remove('text-orange-800', 'text-red-800');
-                                            wifiConnStatus.classList.add('text-green-800');
+                                            // wifiConnStatus.textContent = '已連線 (STA_CONNECTED)';
+                                            // wifiConnStatus.classList.remove('text-orange-800', 'text-red-800');
+                                            // wifiConnStatus.classList.add('text-green-800');
                                         } else if (state === 'STA_DISCONNECTED') {
-                                            wifiConnStatus.textContent = '未連線 (STA_DISCONNECTED)';
-                                            wifiConnStatus.classList.remove('text-green-800', 'text-red-800');
-                                            wifiConnStatus.classList.add('text-orange-800');
+                                            // wifiConnStatus.textContent = '未連線 (STA_DISCONNECTED)';
+                                            // wifiConnStatus.classList.remove('text-green-800', 'text-red-800');
+                                            // wifiConnStatus.classList.add('text-orange-800');
                                             wifiIPAddress.textContent = '--'; // 清除 IP
                                         } else {
-                                            wifiConnStatus.textContent = state;
-                                            wifiConnStatus.classList.remove('text-green-800', 'text-red-800');
-                                            wifiConnStatus.classList.add('text-orange-800');
+                                            // wifiConnStatus.textContent = state;
+                                            // wifiConnStatus.classList.remove('text-green-800', 'text-red-800');
+                                            // wifiConnStatus.classList.add('text-orange-800');
                                         }
                                         
                                         // Assume driver is initialized if state is reported
@@ -1610,17 +1688,17 @@
                                     setTimeout(() => writeSerial('sta state'), 100); 
                                 } else if (normalizedText.includes('sta disconnect done')) {
                                     logData('✅ Wi-Fi 斷開連線成功。', 'System');
-                                    wifiConnStatus.textContent = '已斷線 (STA_DISCONNECTED)';
-                                    wifiConnStatus.classList.remove('text-green-800');
-                                    wifiConnStatus.classList.add('text-orange-800');
+                                    // wifiConnStatus.textContent = '已斷線 (STA_DISCONNECTED)';
+                                    // wifiConnStatus.classList.remove('text-green-800');
+                                    // wifiConnStatus.classList.add('text-orange-800');
                                     wifiIPAddress.textContent = '--';
                                 } else if (normalizedText.includes('sta scan started')) {
                                     logData('✅ Wi-Fi 掃描已開始。結果將在紀錄區顯示。', 'System');
                                 } else if (normalizedText.includes('sta connect failed')) {
                                     logData('❌ Wi-Fi 連線失敗。', 'System');
-                                    wifiConnStatus.textContent = '連線失敗';
-                                    wifiConnStatus.classList.remove('text-green-800', 'text-orange-800');
-                                    wifiConnStatus.classList.add('text-red-800');
+                                    // wifiConnStatus.textContent = '連線失敗';
+                                    // wifiConnStatus.classList.remove('text-green-800', 'text-orange-800');
+                                    // wifiConnStatus.classList.add('text-red-800');
                                     wifiIPAddress.textContent = '--';
                                 }
                                 // --- END Wi-Fi Parsing Logic ---
@@ -2088,25 +2166,82 @@
             writeSerial('sta init');
         }
 
+        function setWifiControlsBusy(busy) {
+            isWifiBusy = busy;
+            document.getElementById('staScanButton').disabled = busy || !isWifiInitialized;
+            document.getElementById('staConnectButton').disabled = busy || !isWifiInitialized;
+            document.getElementById('staInitButton').disabled = busy;
+            document.getElementById('staDisconnectButton').disabled = busy;
+
+            const allButtons = document.querySelectorAll('button');
+            allButtons.forEach(btn => {
+                if (btn.id !== 'connectButton' && btn.id !== 'clearLogButton' && btn.id !== 'saveLogButton') {
+                    if (busy) {
+                        if (!btn.disabled) btn.dataset.wasEnabled = 'true';
+                        btn.disabled = true;
+                    } else {
+                        if (btn.dataset.wasEnabled === 'true') {
+                             btn.disabled = false;
+                             delete btn.dataset.wasEnabled;
+                        }
+                        if (btn.id === 'staScanButton' || btn.id === 'staConnectButton') {
+                            btn.disabled = !isWifiInitialized;
+                        }
+                    }
+                }
+            });
+        }
+
         function handleStaScan() {
+            if (!isWifiInitialized) {
+                showModal('錯誤', 'Wi-Fi 驅動尚未初始化，無法掃描。請先執行 sta init。');
+                return;
+            }
+            isScanning = true;
+            setWifiControlsBusy(true);
+
+            const ssidDatalist = document.getElementById('ssid-list');
+            if(ssidDatalist) ssidDatalist.innerHTML = '';
+            const ssidInput = document.getElementById('wifiSSIDInput');
+            const originalPlaceholder = ssidInput.placeholder;
+            ssidInput.placeholder = '掃描中...';
             writeSerial('sta scan');
+            setTimeout(() => { 
+                isScanning = false; 
+                setWifiControlsBusy(false);
+                ssidInput.placeholder = originalPlaceholder;
+                showModal('掃描完成，請查看下拉選單選擇 SSID');
+            }, 5000);
         }
 
         function handleStaDisconnect() {
             writeSerial('sta disconnect');
+            const ipDisplay = document.getElementById('wifiIPAddress');
+            if (ipDisplay) ipDisplay.textContent = '--';
         }
 
         function handleStaConnect() {
-            const ssid = wifiSSIDInput.value.trim();
-            const password = wifiPasswordInput.value.trim();
+            if (!isWifiInitialized) {
+                showModal('錯誤', 'Wi-Fi 驅動尚未初始化，無法連線。請先執行 sta init。');
+                return;
+            }
+
+            const ssid = document.getElementById('wifiSSIDInput').value.trim();
+            const password = document.getElementById('wifiPasswordInput').value.trim();
+            const security = document.getElementById('wifiSecurityInput').value;
 
             if (!ssid) {
                 showModal('連線錯誤', 'SSID 不可為空。');
                 return;
             }
-            
-            // 由於密碼在某些 AP 可能為空 (開放式網路)，這裡只檢查 SSID
-            const command = `sta connect ${ssid} ${password}`;
+
+            setWifiControlsBusy(true);
+            setTimeout(() => setWifiControlsBusy(false), 3000); 
+
+            let command = `sta connect "${ssid}" ${security}`;
+            if (password) {
+                command += ` "${password}"`;
+            }
             writeSerial(command);
         }
         // --- END Wi-Fi Control Handlers ---
