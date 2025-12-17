@@ -881,6 +881,7 @@
         let isScanning = false;
         let isWifiInitialized = false;
         let isWifiBusy = false;
+        let isTmrRecording = false; // Added for TMR check
         let lineBuffer = ''; 
         let isButtonRecording = false; // 追蹤按鈕是否正在記錄狀態
         let lastSentCommand = ''; // NEW: Global variable to track the last sent command for Wi-Fi auto-init logic.
@@ -1437,7 +1438,7 @@
                                 // TMR Parsing Logic
                                 // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv/Battery/Wi-Fi 的標籤式訊息
                                 const parts = normalizedText.split(' ');
-                                const isTmrData = parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
+                                const isTmrData = isTmrRecording && parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
                                                   !normalizedText.includes('Temperature:') && 
                                                   !normalizedText.includes('clear1') &&
                                                   !normalizedText.includes('button cycles:') &&
@@ -1846,6 +1847,7 @@
                 return;
             }
             
+            isTmrRecording = true; // 標記 TMR 讀取狀態為啟動中
             const command = `dial start ${interval} ${numSamples}`;
             writeSerial(command);
             
@@ -1855,6 +1857,7 @@
 
         function handleStopReading() {
             const ctrlC = '\x03';
+            isTmrRecording = false; // 標記 TMR 讀取狀態為停止
             writeSerial(ctrlC); 
             logData('已發送中斷命令 (Ctrl-C)。設備應停止輸出。', 'System');
             
