@@ -1314,7 +1314,7 @@ const statusElement = document.getElementById('status');
                 let logEntry;
                 
                 if (type === 'Sent') {
-                    logEntry = `<span class="text-yellow-400">[${timestamp}] Sent: </span>${data} (CRLF)\n`;
+                    logEntry = `<span class="text-yellow-400">[${timestamp}] Sent: </span>${data}\n`;
                 } else if (type === 'System') {
                      logEntry = `<span class="text-blue-400">[${timestamp}] System: </span>${data}\n`;
                 }
