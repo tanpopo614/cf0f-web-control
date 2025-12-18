@@ -277,7 +277,72 @@
                     </div>
                 </div>
                 
-                <div id="sectionBacklight" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
+                
+                <!-- Radar Control Section (V49) -->
+                <div id="sectionRadar" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50 mt-4">
+                    <h2 class="text-lg font-semibold text-gray-700">雷達控制 (Radar)</h2>
+
+                    <div class="grid grid-cols-3 gap-2 text-sm text-gray-600 bg-white p-3 rounded border">
+                        <div>
+                            <span class="block text-xs text-gray-400">偵測狀態</span>
+                            <span id="radarDetectStatus" class="font-bold text-gray-800">--</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-400">溫度 (°C)</span>
+                            <span id="radarTempDisplay" class="font-bold text-gray-800">--</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-400">Tx Power (dBm)</span>
+                            <span id="radarPowerDisplay" class="font-bold text-gray-800">--</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="radarDetectBtn" class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>偵測 (Detect)</button>
+                        <button id="radarOpenBtn" class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>開啟 (Open)</button>
+                        <button id="radarTempBtn" class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>讀取溫度</button>
+                        <button id="radarPwrBtn" class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>讀取功率 (Tx)</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="radarInfoBtn" class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>Info</button>
+                        <button id="radarConfigBtn" class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>Config</button>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white p-3 rounded border">
+                        <span class="text-sm font-medium text-gray-700">Average:</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="radarAvgToggle" class="sr-only peer" disabled>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 opacity-50"></div>
+                            <span id="radarAvgLabel" class="ml-2 text-xs text-gray-500 font-medium">Off</span>
+                        </label>
+                    </div>
+
+                    <div class="bg-white p-2 rounded border">
+                        <span class="block text-xs font-medium text-gray-700 mb-1">Chirp Config:</span>
+                        <div class="flex flex-wrap gap-1">
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="a" disabled>A</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="b" disabled>B</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="c" disabled>C</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="d" disabled>D</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="e" disabled>E</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="f" disabled>F</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="g" disabled>G</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-gray-700">Radar Output / Frame Data</label>
+                            <div class="space-x-1">
+                                <button id="radarFrameBtn" class="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded" disabled>Get Frame</button>
+                                <button id="radarSaveBtn" class="bg-gray-700 hover:bg-gray-800 text-white text-xs px-2 py-1 rounded">Save .txt</button>
+                            </div>
+                        </div>
+                        <textarea id="radarOutput" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-mono bg-white focus:ring-2 focus:ring-indigo-500" rows="18" placeholder="Radar data..." readonly></textarea>
+                    </div>
+                </div>
+<div id="sectionBacklight" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
                     <h2 class="text-lg font-semibold text-gray-700">背光控制 (Backlight Control)</h2>
                     
                     <div class="flex space-x-3 pt-1">
@@ -639,7 +704,6 @@
                     </div>
 
                 </div>
-                <!-- BLE Control Section -->
                 <div id="sectionBle" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50 mt-4">
                     <h2 class="text-lg font-semibold text-gray-700">Bluetooth (BLE) 控制</h2>
                     <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
@@ -696,6 +760,7 @@
                         <a href="#sectionBuzzer" class="quick-nav-link-horizontal bg-gray-100 hover:bg-purple-100 text-purple-700">Buzzer</a>
                         
                         <a href="#sectionRHT" class="quick-nav-link-horizontal bg-gray-100 hover:bg-teal-100 text-teal-700">RHT</a>
+<a href="#sectionRadar" class="quick-nav-link-horizontal bg-gray-100 hover:bg-indigo-100 text-indigo-700">Radar</a>
                         
                         <a href="#sectionBacklight" class="quick-nav-link-horizontal bg-gray-100 hover:bg-red-100 text-red-700">背光</a>
                         
@@ -754,7 +819,9 @@
 
     <script>
         // DOM Elements
-                let isBleInitialized = false;
+                        let isRadarFrameMode = false;
+        let isRadarCapturing = false;
+let isBleInitialized = false;
         let isBleScanning = false;
         let hasBleAck = false;
 const statusElement = document.getElementById('status');
@@ -1037,7 +1104,7 @@ const statusElement = document.getElementById('status');
         // --- Control Enable/Disable Functions ---
 
         // Function 1: Disable all controls (Used ONLY when disconnecting)
-        function disableAllControls() {
+        function disableAllControls() { if(typeof updateRadarUI === 'function') updateRadarUI(false);
             // Command Line Controls
             commandInput.disabled = true;
             sendCommandButton.disabled = true;
@@ -1284,7 +1351,7 @@ const statusElement = document.getElementById('status');
             statusElement.textContent = `狀態：${message}`;
             if (isConnected) {
                 statusElement.classList.remove('bg-yellow-100', 'text-yellow-700');
-                statusElement.classList.add('bg-green-100', 'text-green-700');
+                statusElement.classList.add('bg-green-100', 'text-green-700'); if(typeof updateRadarUI === 'function') updateRadarUI(true);
                 connectButton.textContent = '已連接 (點擊斷開)';
                 
                 enableTmrStartControls();
@@ -1386,7 +1453,40 @@ const statusElement = document.getElementById('status');
 
                             if (cleanedLine.length > 0) {
                                 let normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
-                                if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
+                                
+                                // Radar Parsing V46
+                                if (cleanedLine.includes('Detected: Yes')) {
+                                    const el = document.getElementById('radarDetectStatus');
+                                    if(el) { el.textContent = 'Yes'; el.style.color = 'green'; }
+                                }
+                                if (cleanedLine.includes('temp:')) {
+                                    const match = cleanedLine.match(/temp:\s*([\d\.]+)/);
+                                    if (match) {
+                                        const el = document.getElementById('radarTempDisplay');
+                                        if(el) el.textContent = match[1];
+                                    }
+                                }
+                                if (cleanedLine.includes('tx power:')) {
+                                    const match = cleanedLine.match(/tx power:\s*([\d\.]+)/);
+                                    if (match) {
+                                        const el = document.getElementById('radarPowerDisplay');
+                                        if(el) el.textContent = match[1];
+                                    }
+                                }
+                                const rOut = document.getElementById('radarOutput');
+                                if (rOut) {
+                                    if (isRadarFrameMode || isRadarCapturing) {
+                                        rOut.value += cleanedLine + '\n'; rOut.scrollTop = rOut.scrollHeight;
+                                        if (cleanedLine.includes('DONE')) { 
+                                            isRadarFrameMode = false; 
+                                            isRadarCapturing = false;
+                                            setRadarBusy(false); 
+                                        }
+                                    } else if (cleanedLine.includes('chirp') || cleanedLine.includes('mac_address') || cleanedLine.includes('Detected:') || cleanedLine.includes('temp:') || cleanedLine.includes('tx power:')) {
+                                         rOut.value += cleanedLine + '\n'; rOut.scrollTop = rOut.scrollHeight;
+                                    }
+                                }
+if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                                 if(isBleScanning && !cleanedLine.includes('ble scan')) {
                                     const r = document.getElementById('bleScanResults');
                                     if(r) { r.value += cleanedLine + '\n--------------------\n'; r.scrollTop=r.scrollHeight; }
@@ -1396,7 +1496,7 @@ const statusElement = document.getElementById('status');
                                     if(bleStatus) { bleStatus.textContent='Initialized'; bleStatus.style.color='green'; }
                                     if(bleScanStartBtn) bleScanStartBtn.disabled=false;
                                 }
-    
+
                                 // --- Wi-Fi Scan & IP & Driver State ---
                                 let wifiHandled = false;
 
@@ -2533,18 +2633,91 @@ const statusElement = document.getElementById('status');
         };
 
     
-        // BLE Logic V36
+        
+        // --- Radar Logic (V47) ---
+        const radarOutput = document.getElementById('radarOutput');
+
+        function updateRadarUI(enabled) {
+            const btns = document.querySelectorAll('#sectionRadar button:not(#radarSaveBtn)');
+            const toggles = document.querySelectorAll('#sectionRadar input[type="checkbox"]');
+            btns.forEach(b => b.disabled = !enabled);
+            toggles.forEach(t => {
+                t.disabled = !enabled;
+                const div = t.nextElementSibling;
+                if(div) {
+                   if(enabled) div.classList.remove('opacity-50');
+                   else div.classList.add('opacity-50');
+                }
+            });
+        }
+
+        function setRadarBusy(busy) {
+            const btns = document.querySelectorAll('button:not(#radarSaveBtn), input[type="checkbox"]');
+            btns.forEach(btn => btn.disabled = busy);
+            if(busy) {
+                document.getElementById('radarFrameBtn').textContent = 'Reading...';
+            } else {
+                document.getElementById('radarFrameBtn').textContent = 'Get Frame';
+            }
+        }
+
+        async function sendRadarCmd(cmd, clear=false) {
+            if (!port) return;
+            if (clear && radarOutput) radarOutput.value = '';
+            await writeSerial(cmd);
+        }
+        document.getElementById('radarDetectBtn').addEventListener('click', () => sendRadarCmd('fct-radar detect'));
+        document.getElementById('radarOpenBtn').addEventListener('click', () => sendRadarCmd('fct-radar open'));
+        document.getElementById('radarTempBtn').addEventListener('click', () => sendRadarCmd('fct-radar temp'));
+        document.getElementById('radarPwrBtn').addEventListener('click', () => sendRadarCmd('fct-radar pwrdet'));
+        document.getElementById('radarInfoBtn').addEventListener('click', () => { isRadarCapturing = true; sendRadarCmd('fct-radar info', true); });
+        document.getElementById('radarConfigBtn').addEventListener('click', () => { isRadarCapturing = true; sendRadarCmd('fct-radar config', true); });
+
+        const avgToggle = document.getElementById('radarAvgToggle');
+        const avgLabel = document.getElementById('radarAvgLabel');
+        avgToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                sendRadarCmd('fct-radar average 1');
+                avgLabel.textContent = 'On';
+                avgLabel.classList.remove('text-gray-500'); avgLabel.classList.add('text-blue-600', 'font-bold');
+            } else {
+                sendRadarCmd('fct-radar average 0');
+                avgLabel.textContent = 'Off';
+                avgLabel.classList.remove('text-blue-600', 'font-bold'); avgLabel.classList.add('text-gray-500');
+            }
+        });
+
+        document.querySelectorAll('.radar-chirp-btn').forEach(btn => {
+            btn.addEventListener('click', () => { sendRadarCmd('fct-radar config' + btn.dataset.cfg); });
+        });
+
+        document.getElementById('radarFrameBtn').addEventListener('click', () => {
+             if(radarOutput) radarOutput.value = ''; 
+             isRadarFrameMode = true; 
+             setRadarBusy(true); 
+             sendRadarCmd('fct-radar frame');
+        });
+
+        document.getElementById('radarSaveBtn').addEventListener('click', () => {
+            const data = document.getElementById('radarOutput').value;
+            if(!data) return;
+            const now = new Date();
+            const timestamp = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + '_' + now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0') + now.getSeconds().toString().padStart(2, '0');
+            const filename = `radar_frame_data_${timestamp}.txt`;
+            const blob = new Blob([data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        });
+// BLE Logic V36
         const bleStatus = document.getElementById('bleStatus');
         const bleInitBtn = document.getElementById('bleInitBtn');
         const bleScanStartBtn = document.getElementById('bleScanStartBtn');
         const bleScanStopBtn = document.getElementById('bleScanStopBtn');
-        function setBleBusy(busy) {
-             if(bleScanStopBtn) bleScanStopBtn.disabled = !busy;
-             // ... simplified busy logic or full ...
-        }
         if(bleInitBtn) bleInitBtn.addEventListener('click', async () => { if(!port)return; bleStatus.textContent='Init...'; isBleInitialized=false; hasBleAck=false; await writeSerial('ble init'); setTimeout(()=>{if(!isBleInitialized)bleStatus.textContent='Init Timeout'},30000); });
         if(bleScanStartBtn) bleScanStartBtn.addEventListener('click', async () => { if(!port)return; document.getElementById('bleScanResults').value=''; await writeSerial('ble scan start'); isBleScanning=true; bleStatus.textContent='Scanning...'; });
         if(bleScanStopBtn) bleScanStopBtn.addEventListener('click', async () => { if(!port)return; await writeSerial('ble scan stop'); isBleScanning=false; bleStatus.textContent='Stopped'; });
-    </script>
+</script>
 </body>
 </html>
