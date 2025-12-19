@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button/SysEnv/Battery)</title>
+    <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button/SysEnv/Battery/Wi-Fi)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 使用 Inter 字體 */
@@ -145,7 +145,7 @@
                     <div class="flex space-x-3">
                         <input type="text" id="commandInput"
                             class="flex-grow p-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                            placeholder="輸入序列埠指令 (例如: sysenv, dial start 1000 0)" disabled>
+                            placeholder="輸入FCT指令 (? or help查看)" disabled>
                         <button id="sendCommandButton" disabled
                             class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 disabled:bg-gray-400 whitespace-nowrap">
                             發送指令 (Enter)
@@ -277,7 +277,72 @@
                     </div>
                 </div>
                 
-                <div id="sectionBacklight" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
+                
+                <!-- Radar Control Section (V49) -->
+                <div id="sectionRadar" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50 mt-4">
+                    <h2 class="text-lg font-semibold text-gray-700">雷達控制 (Radar)</h2>
+
+                    <div class="grid grid-cols-3 gap-2 text-sm text-gray-600 bg-white p-3 rounded border">
+                        <div>
+                            <span class="block text-xs text-gray-400">偵測狀態</span>
+                            <span id="radarDetectStatus" class="font-bold text-gray-800">--</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-400">溫度 (°C)</span>
+                            <span id="radarTempDisplay" class="font-bold text-gray-800">--</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-400">Tx Power (dBm)</span>
+                            <span id="radarPowerDisplay" class="font-bold text-gray-800">--</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="radarDetectBtn" class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>偵測 (Detect)</button>
+                        <button id="radarOpenBtn" class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>開啟 (Open)</button>
+                        <button id="radarTempBtn" class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>讀取溫度</button>
+                        <button id="radarPwrBtn" class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>讀取功率 (Tx)</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="radarInfoBtn" class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>Info</button>
+                        <button id="radarConfigBtn" class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-1 px-3 rounded text-sm" disabled>Config</button>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white p-3 rounded border">
+                        <span class="text-sm font-medium text-gray-700">Average:</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="radarAvgToggle" class="sr-only peer" disabled>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 opacity-50"></div>
+                            <span id="radarAvgLabel" class="ml-2 text-xs text-gray-500 font-medium">Off</span>
+                        </label>
+                    </div>
+
+                    <div class="bg-white p-2 rounded border">
+                        <span class="block text-xs font-medium text-gray-700 mb-1">Chirp Config:</span>
+                        <div class="flex flex-wrap gap-1">
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="a" disabled>A</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="b" disabled>B</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="c" disabled>C</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="d" disabled>D</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="e" disabled>E</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="f" disabled>F</button>
+                            <button class="radar-chirp-btn bg-purple-100 hover:bg-purple-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-purple-800 text-xs px-2 py-1 rounded border border-purple-200" data-cfg="g" disabled>G</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-gray-700">Radar Output / Frame Data</label>
+                            <div class="space-x-1">
+                                <button id="radarFrameBtn" class="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded" disabled>Get Frame</button>
+                                <button id="radarSaveBtn" class="bg-gray-700 hover:bg-gray-800 text-white text-xs px-2 py-1 rounded">Save .txt</button>
+                            </div>
+                        </div>
+                        <textarea id="radarOutput" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-mono bg-white focus:ring-2 focus:ring-indigo-500" rows="18" placeholder="Radar data..." readonly></textarea>
+                    </div>
+                </div>
+<div id="sectionBacklight" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-red-50">
                     <h2 class="text-lg font-semibold text-gray-700">背光控制 (Backlight Control)</h2>
                     
                     <div class="flex space-x-3 pt-1">
@@ -576,7 +641,88 @@
                     </div>
                 </div>
 
-            </div>
+                <div id="sectionWifi" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-cyan-50">
+                    <h2 class="text-lg font-semibold text-gray-700">Wi-Fi 連線控制 (Station Mode)</h2>
+
+                    <div class="p-3 bg-white rounded-lg border border-cyan-200 text-sm shadow-inner space-y-2">
+                        <h3 class="font-medium text-gray-700 border-b pb-1 mb-1">即時狀態</h3>
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">驅動狀態:</span>
+                            <span id="wifiDriverStatus" class="font-bold text-gray-500">--</span>
+                        </p>
+                        
+                        <p class="flex justify-between">
+                            <span class="text-gray-600 font-medium">IP 地址:</span>
+                            <span id="wifiIPAddress" class="font-bold text-cyan-800">--</span>
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="staStateButton" disabled class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            檢查狀態 (sta state)
+                        </button>
+                        <button id="staInitButton" disabled class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            啟動驅動 (sta init)
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="staScanButton" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold py-2.5 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            掃描 AP (sta scan)
+                        </button>
+                        <button id="staDisconnectButton" disabled class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            斷開連線 (sta disconnect)
+                        </button>
+                    </div>
+
+                    <div class="space-y-3 p-3 border border-cyan-200 rounded-lg bg-white shadow-inner">
+                        <h3 class="text-md font-medium text-gray-700 border-b pb-1">連接到 AP (sta connect)</h3>
+                        
+                        <div class="space-y-2">
+                            <div>
+                                <label for="wifiSSIDInput" class="block text-xs font-medium text-gray-700 mb-1">SSID</label>
+                                <input type="text" id="wifiSSIDInput" value="" 
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" list="ssid-list" placeholder="手動輸入或掃描後選擇">
+                                <datalist id="ssid-list"></datalist>
+                            </div>
+                            <div>
+                                <label for="wifiSecurityInput" class="block text-xs font-medium text-gray-700 mb-1">Security Type</label>
+                                <select id="wifiSecurityInput" class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="0">0 (Open)</option><option value="1">1 (WEP)</option><option value="2">2 (WPA-PSK)</option><option value="3">3 (WPA2-PSK)</option><option value="4">4 (WPA/WPA2-PSK)</option><option value="5">5 (WPA3-PSK)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="wifiPasswordInput" class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="wifiPasswordInput" value="" 
+                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" placeholder="輸入密碼">
+                            </div>
+                        </div>
+
+                        <button id="staConnectButton" disabled class="w-full bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md mt-2">
+                            連線 (sta connect)
+                        </button>
+                    </div>
+
+                </div>
+                <div id="sectionBle" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50 mt-4">
+                    <h2 class="text-lg font-semibold text-gray-700">Bluetooth (BLE) 控制</h2>
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                        <span class="text-sm font-medium text-gray-600">BLE 狀態</span>
+                        <span id="bleStatus" class="text-sm font-bold text-gray-500">--</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="bleInitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">初始化 (Init)</button>
+                        <div class="hidden"></div>
+                        <button id="bleScanStartBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out" disabled>掃描開始</button>
+                        <button id="bleScanStopBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out" disabled>掃描停止</button>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">掃描結果 (Scan Results)</label>
+                        <textarea id="bleScanResults" class="w-full h-32 p-2 border border-gray-300 rounded-lg text-xs font-mono bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="掃描結果將顯示於此..." readonly></textarea>
+                    </div>
+                </div>
+
+                </div>
         </div>
         <div id="logContainer" class="lg:w-1/3">
             <div class="lg:sticky lg:top-4 lg:py-0 pt-4"> 
@@ -595,20 +741,7 @@
                         </button>
                     </div>
                 </div>
-
-                <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.6 (Horizontal Quick Nav)</span></p>
-                        <p class="text-xs">最後更新日期: 2025.12.17</p>
-                    </div>
-                    <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
-                    <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
-                        <li>聯絡人: Neil Lai</li>
-                        <li>電子郵件: <a href="mailto:neil.lai@luxshare-ict.com" class="text-blue-500 hover:text-blue-700 underline">neil.lai@luxshare-ict.com</a></li>
-                        <li>Google Chat: <span class="text-blue-500">neil.lai@luxshare-ict.com</span></li>
-                    </ul>
-                </div>
-                
+               
                 <div id="quickNavHorizontal" class="mt-6 p-4 bg-white rounded-xl shadow-xl border border-gray-100"> 
                     <h4 class="text-sm font-bold text-gray-700 border-b pb-2 mb-2">快速導航</h4>
 
@@ -627,6 +760,7 @@
                         <a href="#sectionBuzzer" class="quick-nav-link-horizontal bg-gray-100 hover:bg-purple-100 text-purple-700">Buzzer</a>
                         
                         <a href="#sectionRHT" class="quick-nav-link-horizontal bg-gray-100 hover:bg-teal-100 text-teal-700">RHT</a>
+<a href="#sectionRadar" class="quick-nav-link-horizontal bg-gray-100 hover:bg-indigo-100 text-indigo-700">Radar</a>
                         
                         <a href="#sectionBacklight" class="quick-nav-link-horizontal bg-gray-100 hover:bg-red-100 text-red-700">背光</a>
                         
@@ -638,9 +772,26 @@
                         
                         <a href="#sectionALS" class="quick-nav-link-horizontal bg-gray-100 hover:bg-purple-100 text-purple-700">ALS</a>
                         
+                        <a href="#sectionWifi" class="quick-nav-link-horizontal bg-gray-100 hover:bg-cyan-100 text-cyan-700">Wi-Fi</a>
+<a href="#sectionBle" class="quick-nav-link-horizontal bg-gray-100 hover:bg-indigo-100 text-indigo-700">Bluetooth</a>
+
                         <a href="#logContainer" class="quick-nav-link-horizontal bg-gray-100 hover:bg-gray-200 text-gray-600">紀錄</a>
                     </div>
                 </div>
+
+                                <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.7 (Add Wi-Fi Control)</span></p>
+                        <p class="text-xs">最後更新日期: 2025.12.17</p>
+                    </div>
+                    <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
+                    <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
+                        <li>聯絡人: Neil Lai</li>
+                        <li>電子郵件: <a href="mailto:neil.lai@luxshare-ict.com" class="text-blue-500 hover:text-blue-700 underline">neil.lai@luxshare-ict.com</a></li>
+                        <li>Google Chat: <span class="text-blue-500">neil.lai@luxshare-ict.com</span></li>
+                    </ul>
+                </div>
+                
                 </div>
         </div>
         </div>
@@ -668,13 +819,18 @@
 
     <script>
         // DOM Elements
-        const statusElement = document.getElementById('status');
+                        let isRadarFrameMode = false;
+        let isRadarCapturing = false;
+let isBleInitialized = false;
+        let isBleScanning = false;
+        let hasBleAck = false;
+const statusElement = document.getElementById('status');
         const connectButton = document.getElementById('connectButton');
         const dataLog = document.getElementById('dataLog');
         const clearLogButton = document.getElementById('clearLogButton');
         const saveLogButton = document.getElementById('saveLogButton');
         
-        // Command Line Elements (NEW)
+        // Command Line Elements
         const commandInput = document.getElementById('commandInput');
         const sendCommandButton = document.getElementById('sendCommandButton');
         
@@ -794,12 +950,31 @@
         const sysEnv_build = document.getElementById('sysEnv_build');
         // ===================================
 
+        // === Wi-Fi Control Elements (NEW) ===
+        const wifiDriverStatus = document.getElementById('wifiDriverStatus');
+        // const wifiConnStatus = document.getElementById('wifiConnStatus');
+        const wifiIPAddress = document.getElementById('wifiIPAddress');
+
+        const staStateButton = document.getElementById('staStateButton');
+        const staInitButton = document.getElementById('staInitButton');
+        const staScanButton = document.getElementById('staScanButton');
+        const staDisconnectButton = document.getElementById('staDisconnectButton');
+
+        const wifiSSIDInput = document.getElementById('wifiSSIDInput');
+        const wifiPasswordInput = document.getElementById('wifiPasswordInput');
+        const staConnectButton = document.getElementById('staConnectButton');
+        // =====================================
 
         let port; 
         let reader;
         let keepReading = false;
+        let isScanning = false;
+        let isWifiInitialized = false;
+        let isWifiBusy = false;
+        let isTmrRecording = false; // Added for TMR check
         let lineBuffer = ''; 
         let isButtonRecording = false; // 追蹤按鈕是否正在記錄狀態
+        let lastSentCommand = ''; // NEW: Global variable to track the last sent command for Wi-Fi auto-init logic.
 
         // === 效能優化相關變數 ===
         let logBuffer = []; // 接收到的數據緩衝區
@@ -832,10 +1007,6 @@
 
         /**
          * 將 RGB 數值轉換為 0xRRGGBB 格式的十六進制字串。
-         * @param {number} r 紅色值 (0-255)
-         * @param {number} g 綠色值 (0-255)
-         * @param {number} b 藍色值 (0-255)
-         * @returns {string|null} 0xRRGGBB 格式的字串，或 null (如果輸入無效)。
          */
         function rgbToHexCommand(r, g, b) {
             const R = parseInt(r);
@@ -862,7 +1033,6 @@
         
         /**
          * 檢查並更新 RGB 輸入欄位的十六進制顯示值。
-         * @returns {string|null} 有效的 Hex 字串，或 null。
          */
         function updateHexDisplay() {
             const R = colorRInput.value.trim();
@@ -917,13 +1087,25 @@
             sysEnv_serial_hash.textContent = '--';
             sysEnv_build.textContent = '--';
         }
+        
+        /**
+         * 重設 Wi-Fi 狀態顯示為預設值
+         */
+        function resetWifiDisplay() {
+            wifiDriverStatus.textContent = '未初始化';
+            wifiDriverStatus.classList.remove('text-green-800');
+            wifiDriverStatus.classList.add('text-red-800');
+            // wifiConnStatus.textContent = '--';
+            // wifiConnStatus.classList.remove('text-green-800', 'text-orange-800');
+            wifiIPAddress.textContent = '--';
+        }
 
 
         // --- Control Enable/Disable Functions ---
 
         // Function 1: Disable all controls (Used ONLY when disconnecting)
-        function disableAllControls() {
-            // Command Line Controls (NEW)
+        function disableAllControls() { if(typeof updateRadarUI === 'function') updateRadarUI(false);
+            // Command Line Controls
             commandInput.disabled = true;
             sendCommandButton.disabled = true;
             
@@ -987,14 +1169,24 @@
             setSampleTimeButton.disabled = true;
             alsNrSamplesInput.disabled = false;
             setNrSamplesButton.disabled = true;
+            
+            // Disable Wi-Fi Controls (NEW)
+            wifiSSIDInput.disabled = false;
+            wifiPasswordInput.disabled = false;
+            staStateButton.disabled = true;
+            staInitButton.disabled = true;
+            staScanButton.disabled = true;
+            staDisconnectButton.disabled = true;
+            staConnectButton.disabled = true;
 
-            // Reset SysEnv Display
+            // Reset Displays
             resetSysEnvDisplay();
+            resetWifiDisplay();
         }
 
         // Function 2: Enable controls after successful connection (Idle state)
         function enableTmrStartControls() {
-            // Command Line Controls (NEW)
+            // Command Line Controls
             commandInput.disabled = false;
             sendCommandButton.disabled = false;
             
@@ -1056,11 +1248,20 @@
             setSampleTimeButton.disabled = false;
             alsNrSamplesInput.disabled = false;
             setNrSamplesButton.disabled = false;
+            
+            // Enable Wi-Fi Controls (NEW)
+            wifiSSIDInput.disabled = false;
+            wifiPasswordInput.disabled = false;
+            staStateButton.disabled = false;
+            staInitButton.disabled = false;
+            staScanButton.disabled = false;
+            staDisconnectButton.disabled = false;
+            staConnectButton.disabled = false;
         }
 
         // Function 3: Set controls when TMR, ALS, or Button is running (Active state)
         function setTmrActiveControls() {
-            // Command Line Controls (NEW)
+            // Command Line Controls
             commandInput.disabled = true;
             sendCommandButton.disabled = true;
             
@@ -1121,6 +1322,13 @@
             setSampleTimeButton.disabled = true;
             alsNrSamplesInput.disabled = true;
             setNrSamplesButton.disabled = true;
+            
+            // Disable Wi-Fi Controls (NEW)
+            staStateButton.disabled = true;
+            staInitButton.disabled = true;
+            staScanButton.disabled = true;
+            staDisconnectButton.disabled = true;
+            staConnectButton.disabled = true;
         }
 
         /**
@@ -1143,7 +1351,7 @@
             statusElement.textContent = `狀態：${message}`;
             if (isConnected) {
                 statusElement.classList.remove('bg-yellow-100', 'text-yellow-700');
-                statusElement.classList.add('bg-green-100', 'text-green-700');
+                statusElement.classList.add('bg-green-100', 'text-green-700'); if(typeof updateRadarUI === 'function') updateRadarUI(true);
                 connectButton.textContent = '已連接 (點擊斷開)';
                 
                 enableTmrStartControls();
@@ -1173,7 +1381,7 @@
                 let logEntry;
                 
                 if (type === 'Sent') {
-                    logEntry = `<span class="text-yellow-400">[${timestamp}] Sent: </span>${data} (CRLF)\n`;
+                    logEntry = `<span class="text-yellow-400">[${timestamp}] Sent: </span>${data}\n`;
                 } else if (type === 'System') {
                      logEntry = `<span class="text-blue-400">[${timestamp}] System: </span>${data}\n`;
                 }
@@ -1246,17 +1454,135 @@
                             if (cleanedLine.length > 0) {
                                 let normalizedText = cleanedLine.replace(/\s+/g, ' ').trim();
                                 
+                                // Radar Parsing V46
+                                if (cleanedLine.includes('Detected: Yes')) {
+                                    const el = document.getElementById('radarDetectStatus');
+                                    if(el) { el.textContent = 'Yes'; el.style.color = 'green'; }
+                                }
+                                if (cleanedLine.includes('temp:')) {
+                                    const match = cleanedLine.match(/temp:\s*([\d\.]+)/);
+                                    if (match) {
+                                        const el = document.getElementById('radarTempDisplay');
+                                        if(el) el.textContent = match[1];
+                                    }
+                                }
+                                if (cleanedLine.includes('tx power:')) {
+                                    const match = cleanedLine.match(/tx power:\s*([\d\.]+)/);
+                                    if (match) {
+                                        const el = document.getElementById('radarPowerDisplay');
+                                        if(el) el.textContent = match[1];
+                                    }
+                                }
+                                const rOut = document.getElementById('radarOutput');
+                                if (rOut) {
+                                    if (isRadarFrameMode || isRadarCapturing) {
+                                        rOut.value += cleanedLine + '\n'; rOut.scrollTop = rOut.scrollHeight;
+                                        if (cleanedLine.includes('DONE')) { 
+                                            isRadarFrameMode = false; 
+                                            isRadarCapturing = false;
+                                            setRadarBusy(false); 
+                                        }
+                                    } else if (cleanedLine.includes('chirp') || cleanedLine.includes('mac_address') || cleanedLine.includes('Detected:') || cleanedLine.includes('temp:') || cleanedLine.includes('tx power:')) {
+                                         rOut.value += cleanedLine + '\n'; rOut.scrollTop = rOut.scrollHeight;
+                                    }
+                                }
+if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
+                                if(isBleScanning && !cleanedLine.includes('ble scan')) {
+                                    const r = document.getElementById('bleScanResults');
+                                    if(r) { r.value += cleanedLine + '\n--------------------\n'; r.scrollTop=r.scrollHeight; }
+                                }
+                                if(/BLE.*up/i.test(cleanedLine) || (cleanedLine.includes('result = 0') && hasBleAck)) {
+                                    isBleInitialized=true;
+                                    if(bleStatus) { bleStatus.textContent='Initialized'; bleStatus.style.color='green'; }
+                                    if(bleScanStartBtn) bleScanStartBtn.disabled=false;
+                                }
+
+                                // --- Wi-Fi Scan & IP & Driver State ---
+                                let wifiHandled = false;
+
+                                if (isScanning) {
+                                    const match = normalizedText.match(/\bSSID\s*:\s*(.+)/i);
+                                    if (match) {
+                                        let finalSSID = match[1].trim();
+                                        const bssidIndex = finalSSID.toUpperCase().indexOf('BSSID');
+                                        if (bssidIndex !== -1) {
+                                            finalSSID = finalSSID.substring(0, bssidIndex).trim();
+                                        }
+                                        if (finalSSID.length > 0) {
+                                            const ssidDatalist = document.getElementById('ssid-list');
+                                            if (ssidDatalist && !Array.from(ssidDatalist.options).some(o => o.value === finalSSID)) {
+                                                const option = document.createElement('option');
+                                                option.value = finalSSID;
+                                                ssidDatalist.appendChild(option);
+                                            }
+                                        }
+                                        wifiHandled = true;
+                                    }
+                                }
+
+                                if (normalizedText.includes('Network ready IP:')) {
+                                    const ipMatch = normalizedText.match(/IP:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+                                    if (ipMatch) {
+                                        const ipAddress = ipMatch[1];
+                                        showModal('連線成功', `已取得 IP 位址: ${ipAddress}`);
+                                        const ipDisplay = document.getElementById('wifiIPAddress');
+                                        if (ipDisplay) ipDisplay.textContent = ipAddress;
+                                    }
+                                    wifiHandled = true;
+                                }
+
+                                if (normalizedText.includes('STA_DISCONNECTED')) {
+                                    const ipDisplay = document.getElementById('wifiIPAddress');
+                                    if (ipDisplay) ipDisplay.textContent = '--';
+                                    wifiHandled = true; 
+                                }
+
+                                const driverStateDisplay = document.getElementById('wifiDriverStatus');
+                                if (driverStateDisplay) {
+                                    if (normalizedText.includes('WiFi Driver is not initialized') || 
+                                        normalizedText.includes('result = -19')) {
+                                        driverStateDisplay.textContent = '未初始化';
+                                        driverStateDisplay.classList.remove('text-green-600', 'text-gray-500');
+                                        driverStateDisplay.classList.add('text-red-800');
+                                        isWifiInitialized = false;
+                                        document.getElementById('staScanButton').disabled = true;
+                                        document.getElementById('staConnectButton').disabled = true;
+                                        wifiHandled = true;
+                                    } 
+                                    else if (normalizedText.includes('mhd_sta_get_state() returned 0') || 
+                                             normalizedText.includes('mhd_module_init() returned error 0')) {
+                                        driverStateDisplay.textContent = '初始化完成';
+                                        driverStateDisplay.classList.remove('text-red-800', 'text-gray-500');
+                                        driverStateDisplay.classList.add('text-green-600');
+                                        isWifiInitialized = true;
+                                        if (!isWifiBusy) {
+                                            document.getElementById('staScanButton').disabled = false;
+                                            document.getElementById('staConnectButton').disabled = false;
+                                        }
+                                        wifiHandled = true;
+                                    }
+                                }
+
+                                if (wifiHandled) {
+                                    logData(normalizedText, 'Received');
+                                    continue;
+                                }
+
+                                
                                 // TMR Parsing Logic
-                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv/Battery 的標籤式訊息
+                                // 檢查條件：至少有 5 個參數，第一個參數是數字 (時間戳)，且不是 RHT/ALS/Button/SysEnv/Battery/Wi-Fi 的標籤式訊息
                                 const parts = normalizedText.split(' ');
-                                const isTmrData = parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
+                                const isTmrData = isTmrRecording && parts.length >= 5 && !isNaN(parseInt(parts[0])) && 
                                                   !normalizedText.includes('Temperature:') && 
                                                   !normalizedText.includes('clear1') &&
                                                   !normalizedText.includes('button cycles:') &&
                                                   !normalizedText.includes('vbat') && // 排除 Battery 數據
                                                   !normalizedText.includes('current limit:') && // 排除 Battery 數據
                                                   !normalizedText.includes('charger_set') && // 排除 Battery 數據
-                                                  !normalizedText.includes('='); // 排除 SysEnv 數據
+                                                  !normalizedText.includes('=') && // 排除 SysEnv 數據
+                                                  !normalizedText.includes('WiFi Driver is not initialized') && // 排除 Wi-Fi 數據
+                                                  !normalizedText.includes('state:') && // 排除 Wi-Fi 數據
+                                                  !normalizedText.includes('ip:'); // 排除 Wi-Fi 數據
 
                                 if (isTmrData) { 
                                     // 原始資料格式: timestamp ADC1 ADC2 sensr_d dial_d
@@ -1438,9 +1764,79 @@
 
                                 // Check for device termination signal (TMR/ALS session over)
                                 if (normalizedText.toUpperCase().includes('DONE') || normalizedText.toUpperCase().includes('STOPPED')) {
-                                    logData('設備信號：TMR/ALS 讀取已完成或停止，允許下達下一個指令。', 'System');
+                                    // logData('設備信號：TMR/ALS 讀取已完成或停止，允許下達下一個指令。', 'System');
                                     enableTmrStartControls();
                                 }
+                                
+                                
+                                // --- NEW Wi-Fi Parsing Logic (sta state) ---
+                                const isStateCheck = lastSentCommand === 'sta state';
+                                
+                                if (normalizedText === 'WiFi Driver is not initialized') {
+                                    wifiDriverStatus.textContent = '未初始化';
+                                    wifiDriverStatus.classList.remove('text-green-800');
+                                    wifiDriverStatus.classList.add('text-red-800');
+                                    
+                                    if (isStateCheck) {
+                                        logData('⚠️ Wi-Fi 驅動未啟動。系統將自動執行 "sta init"...', 'System');
+                                        // Auto-init logic (Requirement 1 & 2)
+                                        setTimeout(() => writeSerial('sta init'), 50); 
+                                    } else {
+                                        logData('⚠️ Wi-Fi 驅動未啟動。', 'System');
+                                    }
+                                    
+                                } else if (normalizedText.includes('state:')) {
+                                    const stateMatch = normalizedText.match(/state: ([\w_]+)/);
+                                    if (stateMatch) {
+                                        const state = stateMatch[1];
+                                        if (state === 'STA_CONNECTED') {
+                                            // wifiConnStatus.textContent = '已連線 (STA_CONNECTED)';
+                                            // wifiConnStatus.classList.remove('text-orange-800', 'text-red-800');
+                                            // wifiConnStatus.classList.add('text-green-800');
+                                        } else if (state === 'STA_DISCONNECTED') {
+                                            // wifiConnStatus.textContent = '未連線 (STA_DISCONNECTED)';
+                                            // wifiConnStatus.classList.remove('text-green-800', 'text-red-800');
+                                            // wifiConnStatus.classList.add('text-orange-800');
+                                            wifiIPAddress.textContent = '--'; // 清除 IP
+                                        } else {
+                                            // wifiConnStatus.textContent = state;
+                                            // wifiConnStatus.classList.remove('text-green-800', 'text-red-800');
+                                            // wifiConnStatus.classList.add('text-orange-800');
+                                        }
+                                        
+                                        // Assume driver is initialized if state is reported
+                                        wifiDriverStatus.textContent = '已啟動';
+                                        wifiDriverStatus.classList.remove('text-red-800');
+                                        wifiDriverStatus.classList.add('text-green-800');
+                                    }
+                                } else if (normalizedText.startsWith('ip:')) {
+                                    const ip = normalizedText.substring('ip:'.length).trim();
+                                    wifiIPAddress.textContent = ip;
+                                } else if (normalizedText.includes('sta init done')) {
+                                    logData('✅ Wi-Fi 驅動啟動成功。請再次檢查狀態或開始掃描。', 'System');
+                                    wifiDriverStatus.textContent = '已啟動';
+                                    wifiDriverStatus.classList.remove('text-red-800');
+                                    wifiDriverStatus.classList.add('text-green-800');
+                                } else if (normalizedText.includes('sta connect done')) {
+                                    logData('✅ Wi-Fi 連線成功。請檢查 IP 地址 (sta state)。', 'System');
+                                    // 延遲發送 sta state 確保 IP 已經準備好
+                                    setTimeout(() => writeSerial('sta state'), 100); 
+                                } else if (normalizedText.includes('sta disconnect done')) {
+                                    logData('✅ Wi-Fi 斷開連線成功。', 'System');
+                                    // wifiConnStatus.textContent = '已斷線 (STA_DISCONNECTED)';
+                                    // wifiConnStatus.classList.remove('text-green-800');
+                                    // wifiConnStatus.classList.add('text-orange-800');
+                                    wifiIPAddress.textContent = '--';
+                                } else if (normalizedText.includes('sta scan started')) {
+                                    logData('✅ Wi-Fi 掃描已開始。結果將在紀錄區顯示。', 'System');
+                                } else if (normalizedText.includes('sta connect failed')) {
+                                    logData('❌ Wi-Fi 連線失敗。', 'System');
+                                    // wifiConnStatus.textContent = '連線失敗';
+                                    // wifiConnStatus.classList.remove('text-green-800', 'text-orange-800');
+                                    // wifiConnStatus.classList.add('text-red-800');
+                                    wifiIPAddress.textContent = '--';
+                                }
+                                // --- END Wi-Fi Parsing Logic ---
                                 
                                 logData(normalizedText, 'Received'); 
                             }
@@ -1482,7 +1878,10 @@
                 writer.releaseLock();
                 
                 if (data !== '\x03') {
+                    lastSentCommand = data.trim(); // NEW: Track the last command sent
                     logData(data, 'Sent');
+                } else {
+                    lastSentCommand = ''; // Clear tracking on Ctrl-C
                 }
             } catch (error) {
                 console.error('Writing error:', error);
@@ -1507,6 +1906,7 @@
                         clearTimeout(batchTimer);
                         batchTimer = null;
                     }
+                    lastSentCommand = ''; // Reset tracking
 
                 } catch (error) {
                     console.error('Disconnection error:', error);
@@ -1556,7 +1956,7 @@
             }
         }
         
-        // --- Command Line Handler (NEW) ---
+        // --- Command Line Handler ---
         function handleSendCommand() {
             const command = commandInput.value.trim();
             if (command) {
@@ -1581,6 +1981,7 @@
                 return;
             }
             
+            isTmrRecording = true; // 標記 TMR 讀取狀態為啟動中
             const command = `dial start ${interval} ${numSamples}`;
             writeSerial(command);
             
@@ -1590,6 +1991,7 @@
 
         function handleStopReading() {
             const ctrlC = '\x03';
+            isTmrRecording = false; // 標記 TMR 讀取狀態為停止
             writeSerial(ctrlC); 
             logData('已發送中斷命令 (Ctrl-C)。設備應停止輸出。', 'System');
             
@@ -1747,7 +2149,7 @@
             writeSerial(command);
         }
 
-        // --- NEW Button Control Handlers ---
+        // --- Button Control Handlers ---
         function handleButtonStart() {
             buttonCyclesDisplay.textContent = '記錄中...'; // 顯示狀態
             writeSerial('fct-button start-record');
@@ -1775,7 +2177,7 @@
         }
         // --- END Button Control Handlers ---
 
-        // --- NEW Battery Control Handlers ---
+        // --- Battery Control Handlers ---
         function handleBatReadVoltage() {
             batVoltageDisplay.textContent = '讀取中...';
             writeSerial('fct-bat voltage');
@@ -1886,6 +2288,100 @@
             writeSerial(`tcs3410 als_nr_samples ${value}`);
         }
         // --- END ALS Control Handlers ---
+        
+        
+        // --- NEW Wi-Fi Control Handlers ---
+
+        /**
+         * 發送 Wi-Fi 命令並處理狀態檢查和自動初始化邏輯 (sta state / sta init)。
+         */
+        async function handleStaState() {
+            writeSerial('sta state');
+        }
+        
+        function handleStaInit() {
+            writeSerial('sta init');
+        }
+
+        function setWifiControlsBusy(busy) {
+            isWifiBusy = busy;
+            document.getElementById('staScanButton').disabled = busy || !isWifiInitialized;
+            document.getElementById('staConnectButton').disabled = busy || !isWifiInitialized;
+            document.getElementById('staInitButton').disabled = busy;
+            document.getElementById('staDisconnectButton').disabled = busy;
+
+            const allButtons = document.querySelectorAll('button');
+            allButtons.forEach(btn => {
+                if (btn.id !== 'connectButton' && btn.id !== 'clearLogButton' && btn.id !== 'saveLogButton') {
+                    if (busy) {
+                        if (!btn.disabled) btn.dataset.wasEnabled = 'true';
+                        btn.disabled = true;
+                    } else {
+                        if (btn.dataset.wasEnabled === 'true') {
+                             btn.disabled = false;
+                             delete btn.dataset.wasEnabled;
+                        }
+                        if (btn.id === 'staScanButton' || btn.id === 'staConnectButton') {
+                            btn.disabled = !isWifiInitialized;
+                        }
+                    }
+                }
+            });
+        }
+
+        function handleStaScan() {
+            if (!isWifiInitialized) {
+                showModal('錯誤', 'Wi-Fi 驅動尚未初始化，無法掃描。請先執行 sta init。');
+                return;
+            }
+            isScanning = true;
+            setWifiControlsBusy(true);
+
+            const ssidDatalist = document.getElementById('ssid-list');
+            if(ssidDatalist) ssidDatalist.innerHTML = '';
+            const ssidInput = document.getElementById('wifiSSIDInput');
+            const originalPlaceholder = ssidInput.placeholder;
+            ssidInput.placeholder = '掃描中...';
+            writeSerial('sta scan');
+            setTimeout(() => { 
+                isScanning = false; 
+                setWifiControlsBusy(false);
+                ssidInput.placeholder = originalPlaceholder;
+                showModal('掃描完成，請查看下拉選單選擇 SSID');
+            }, 5000);
+        }
+
+        function handleStaDisconnect() {
+            writeSerial('sta disconnect');
+            const ipDisplay = document.getElementById('wifiIPAddress');
+            if (ipDisplay) ipDisplay.textContent = '--';
+        }
+
+        function handleStaConnect() {
+            if (!isWifiInitialized) {
+                showModal('錯誤', 'Wi-Fi 驅動尚未初始化，無法連線。請先執行 sta init。');
+                return;
+            }
+
+            const ssid = document.getElementById('wifiSSIDInput').value.trim();
+            const password = document.getElementById('wifiPasswordInput').value.trim();
+            const security = document.getElementById('wifiSecurityInput').value;
+
+            if (!ssid) {
+                showModal('連線錯誤', 'SSID 不可為空。');
+                return;
+            }
+
+            setWifiControlsBusy(true);
+            setTimeout(() => setWifiControlsBusy(false), 3000); 
+
+            let command = `sta connect "${ssid}" ${security}`;
+            if (password) {
+                command += ` "${password}"`;
+            }
+            writeSerial(command);
+        }
+        // --- END Wi-Fi Control Handlers ---
 
 
         // Event Listeners
@@ -1899,7 +2395,7 @@
         
         saveLogButton.addEventListener('click', saveLog);
         
-        // Event Listeners for Command Line (NEW)
+        // Event Listeners for Command Line
         sendCommandButton.addEventListener('click', handleSendCommand);
 
         commandInput.addEventListener('keypress', (event) => {
@@ -1968,6 +2464,14 @@
         setGainButton.addEventListener('click', handleSetGain);
         setSampleTimeButton.addEventListener('click', handleSetSampleTime);
         setNrSamplesButton.addEventListener('click', handleSetNrSamples);
+
+        // Event Listeners for Wi-Fi Control (NEW)
+        staStateButton.addEventListener('click', handleStaState);
+        staInitButton.addEventListener('click', handleStaInit);
+        staScanButton.addEventListener('click', handleStaScan);
+        staDisconnectButton.addEventListener('click', handleStaDisconnect);
+        staConnectButton.addEventListener('click', handleStaConnect);
+
 
         // Allow Enter key in TMR input fields to trigger Start Reading
         intervalInput.addEventListener('keypress', (event) => {
@@ -2063,6 +2567,20 @@
             }
         });
         
+        // Allow Enter key in Wi-Fi Connect fields to trigger Connect (NEW)
+        wifiPasswordInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !staConnectButton.disabled) {
+                event.preventDefault();
+                handleStaConnect();
+            }
+        });
+        wifiSSIDInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !staConnectButton.disabled) {
+                event.preventDefault();
+                handleStaConnect();
+            }
+        });
+        
         // --- NEW Navigation and Scroll Logic (Removed QuickNav related logic, kept Back to Top) ---
         document.addEventListener('DOMContentLoaded', () => {
             // Smooth scroll for all anchor links starting with '#'
@@ -2114,6 +2632,92 @@
             }
         };
 
-    </script>
+    
+        
+        // --- Radar Logic (V47) ---
+        const radarOutput = document.getElementById('radarOutput');
+
+        function updateRadarUI(enabled) {
+            const btns = document.querySelectorAll('#sectionRadar button:not(#radarSaveBtn)');
+            const toggles = document.querySelectorAll('#sectionRadar input[type="checkbox"]');
+            btns.forEach(b => b.disabled = !enabled);
+            toggles.forEach(t => {
+                t.disabled = !enabled;
+                const div = t.nextElementSibling;
+                if(div) {
+                   if(enabled) div.classList.remove('opacity-50');
+                   else div.classList.add('opacity-50');
+                }
+            });
+        }
+
+        function setRadarBusy(busy) {
+            const btns = document.querySelectorAll('button:not(#radarSaveBtn), input[type="checkbox"]');
+            btns.forEach(btn => btn.disabled = busy);
+            if(busy) {
+                document.getElementById('radarFrameBtn').textContent = 'Reading...';
+            } else {
+                document.getElementById('radarFrameBtn').textContent = 'Get Frame';
+            }
+        }
+
+        async function sendRadarCmd(cmd, clear=false) {
+            if (!port) return;
+            if (clear && radarOutput) radarOutput.value = '';
+            await writeSerial(cmd);
+        }
+        document.getElementById('radarDetectBtn').addEventListener('click', () => sendRadarCmd('fct-radar detect'));
+        document.getElementById('radarOpenBtn').addEventListener('click', () => sendRadarCmd('fct-radar open'));
+        document.getElementById('radarTempBtn').addEventListener('click', () => sendRadarCmd('fct-radar temp'));
+        document.getElementById('radarPwrBtn').addEventListener('click', () => sendRadarCmd('fct-radar pwrdet'));
+        document.getElementById('radarInfoBtn').addEventListener('click', () => { isRadarCapturing = true; sendRadarCmd('fct-radar info', true); });
+        document.getElementById('radarConfigBtn').addEventListener('click', () => { isRadarCapturing = true; sendRadarCmd('fct-radar config', true); });
+
+        const avgToggle = document.getElementById('radarAvgToggle');
+        const avgLabel = document.getElementById('radarAvgLabel');
+        avgToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                sendRadarCmd('fct-radar average 1');
+                avgLabel.textContent = 'On';
+                avgLabel.classList.remove('text-gray-500'); avgLabel.classList.add('text-blue-600', 'font-bold');
+            } else {
+                sendRadarCmd('fct-radar average 0');
+                avgLabel.textContent = 'Off';
+                avgLabel.classList.remove('text-blue-600', 'font-bold'); avgLabel.classList.add('text-gray-500');
+            }
+        });
+
+        document.querySelectorAll('.radar-chirp-btn').forEach(btn => {
+            btn.addEventListener('click', () => { sendRadarCmd('fct-radar config' + btn.dataset.cfg); });
+        });
+
+        document.getElementById('radarFrameBtn').addEventListener('click', () => {
+             if(radarOutput) radarOutput.value = ''; 
+             isRadarFrameMode = true; 
+             setRadarBusy(true); 
+             sendRadarCmd('fct-radar frame');
+        });
+
+        document.getElementById('radarSaveBtn').addEventListener('click', () => {
+            const data = document.getElementById('radarOutput').value;
+            if(!data) return;
+            const now = new Date();
+            const timestamp = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + '_' + now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0') + now.getSeconds().toString().padStart(2, '0');
+            const filename = `radar_frame_data_${timestamp}.txt`;
+            const blob = new Blob([data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        });
+// BLE Logic V36
+        const bleStatus = document.getElementById('bleStatus');
+        const bleInitBtn = document.getElementById('bleInitBtn');
+        const bleScanStartBtn = document.getElementById('bleScanStartBtn');
+        const bleScanStopBtn = document.getElementById('bleScanStopBtn');
+        if(bleInitBtn) bleInitBtn.addEventListener('click', async () => { if(!port)return; bleStatus.textContent='Init...'; isBleInitialized=false; hasBleAck=false; await writeSerial('ble init'); setTimeout(()=>{if(!isBleInitialized)bleStatus.textContent='Init Timeout'},30000); });
+        if(bleScanStartBtn) bleScanStartBtn.addEventListener('click', async () => { if(!port)return; document.getElementById('bleScanResults').value=''; await writeSerial('ble scan start'); isBleScanning=true; bleStatus.textContent='Scanning...'; });
+        if(bleScanStopBtn) bleScanStopBtn.addEventListener('click', async () => { if(!port)return; await writeSerial('ble scan stop'); isBleScanning=false; bleStatus.textContent='Stopped'; });
+</script>
 </body>
 </html>
