@@ -857,8 +857,8 @@
                 </div>
 
                                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                    
-                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.14 (Exclude ADC Data from Radar)</span></p>
-                    <p class="text-xs">最後更新日期: 2025.12.22</p>         
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.15 (Add ADC User Prompt)</span></p>
+                    <p class="text-xs">最後更新日期: 2025.12.22</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
                         <li>聯絡人: Neil Lai</li>
@@ -2809,14 +2809,21 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                 const interval = document.getElementById('ntcInterval').value || 1;
                 const cmd = `fct-adc mlbntc ${pos} ${samples} ${interval}`;
                 await writeSerial(cmd);
+
+                // 新增提示 (v1.3.15)
+                showModal('讀取指令已發送', '請至介面右側的「接收到的資料紀錄」視窗查看詳細讀取數值。');
             });
         }
 
         if (btnReadHwid) {
             btnReadHwid.addEventListener('click', async () => {
-                if (!port) { alert('請先連線 Serial Port'); return; }
+                if (!port) { alert('請先連線 Serial Port'); return; }                
                 await writeSerial('fct-adc hwid');
+                // 新增提示 (v1.3.15)
+                showModal('讀取指令已發送', '請至介面右側的「接收到的資料紀錄」視窗查看 HWID 資訊。');
             });
+
+            
         }
 
         // Dummy function to prevent crash if user has call in read loop
