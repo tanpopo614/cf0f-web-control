@@ -4,7 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CF0F FCT 設備控制台 (ALS/TMR/LCD/RHT/Button/SysEnv/Battery/Wi-Fi)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // ==========================================
+        // ADC Control Logic (v1.3.11)
+        // ==========================================
+        const btnReadNtc = document.getElementById('btnReadNtc');
+        const btnReadHwid = document.getElementById('btnReadHwid');
+
+        // Listeners
+        if (btnReadNtc) {
+            btnReadNtc.addEventListener('click', async () => {
+                if (!port) { alert('請先連線 Serial Port'); return; }
+                const pos = document.querySelector('input[name="ntcPos"]:checked').value;
+                const samples = document.getElementById('ntcSamples').value || 32;
+                const interval = document.getElementById('ntcInterval').value || 1;
+                const cmd = `fct-adc mlbntc ${pos} ${samples} ${interval}`;
+                await writeSerial(cmd);
+            });
+        }
+
+        if (btnReadHwid) {
+            btnReadHwid.addEventListener('click', async () => {
+                if (!port) { alert('請先連線 Serial Port'); return; }
+                await writeSerial('fct-adc hwid');
+            });
+        }
+
+        // Dummy function to prevent crash if user has call in read loop
+        function parseAdcResponse(line) {}
+
+</script>
     <style>
         /* 使用 Inter 字體 */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -248,7 +277,53 @@
                     </div>
                 </div>
                 
-                <div id="sectionRHT" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
+                
+                <!-- ADC Control Section (New v1.3.11) -->
+                <div id="sectionADC" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-purple-50 mb-4">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">ADC 控制 (MLB NTC & HWID)</h2>
+
+                    <!-- MLB NTC Control -->
+                    <div class="mb-4">
+                        <h3 class="text-md font-medium text-gray-700 mb-2">MLB NTC 溫度/ADC 讀取</h3>
+                        <div class="flex flex-wrap gap-4 mb-3">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="radio" name="ntcPos" value="sw" checked class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                <span class="ml-2 text-sm text-gray-700">SW</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="radio" name="ntcPos" value="se" class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                <span class="ml-2 text-sm text-gray-700">SE</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="radio" name="ntcPos" value="nw" class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                <span class="ml-2 text-sm text-gray-700">NW</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Samples</label>
+                                <input type="number" id="ntcSamples" value="32" min="1" class="w-full p-2 border rounded text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Interval (ms)</label>
+                                <input type="number" id="ntcInterval" value="1" min="0" class="w-full p-2 border rounded text-sm">
+                            </div>
+                        </div>
+                        <button id="btnReadNtc" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                            讀取 NTC (Read)
+                        </button>
+                    </div>
+
+                    <!-- HWID Control -->
+                    <div class="border-t border-gray-200 pt-3">
+                        <h3 class="text-md font-medium text-gray-700 mb-2">HWID 讀取</h3>
+                        <button id="btnReadHwid" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                            讀取 HWID
+                        </button>
+                    </div>
+                </div>
+
+<div id="sectionRHT" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-blue-50">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">RHT 溫濕度感測器讀取</h2>
                     
                     <div class="md:flex md:space-x-4">
@@ -532,7 +607,7 @@
                         <div class="flex space-x-3 items-end">
                             <div class="flex-1">
                                 <label for="batIlimitInput" class="block text-xs font-medium text-gray-700 mb-1">設定 Input Current Limit (0-100 mA)</label>
-                                <input type="number" id="batIlimitInput" value="100" min="0" max="100" 
+                                <input type="number" id="batIlimitInput" value="20" min="0" max="100" 
                                     class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
                             </div>
                             <button id="batSetIlimitButton" disabled 
@@ -781,8 +856,8 @@
 
                                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">
                     <div class="flex justify-between items-center mb-2">
-                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.7 (Add Wi-Fi Control)</span></p>
-                        <p class="text-xs">最後更新日期: 2025.12.17</p>
+                        <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.11 (Update Default Values)</span></p>
+                        <p class="text-xs">最後更新日期: 2025.12.22</p>
                     </div>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
@@ -1482,7 +1557,7 @@ const statusElement = document.getElementById('status');
                                             isRadarCapturing = false;
                                             setRadarBusy(false); 
                                         }
-                                    } else if (cleanedLine.includes('chirp') || cleanedLine.includes('mac_address') || cleanedLine.includes('Detected:') || cleanedLine.includes('temp:') || cleanedLine.includes('tx power:')) {
+                                    } else if ((cleanedLine.includes('chirp') || cleanedLine.includes('mac_address') || cleanedLine.includes('Detected:') || cleanedLine.includes('temp:') || cleanedLine.includes('tx power:')) && !cleanedLine.includes('INFO:')) {
                                          rOut.value += cleanedLine + '\n'; rOut.scrollTop = rOut.scrollHeight;
                                     }
                                 }
@@ -2718,6 +2793,35 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
         if(bleInitBtn) bleInitBtn.addEventListener('click', async () => { if(!port)return; bleStatus.textContent='Init...'; isBleInitialized=false; hasBleAck=false; await writeSerial('ble init'); setTimeout(()=>{if(!isBleInitialized)bleStatus.textContent='Init Timeout'},30000); });
         if(bleScanStartBtn) bleScanStartBtn.addEventListener('click', async () => { if(!port)return; document.getElementById('bleScanResults').value=''; await writeSerial('ble scan start'); isBleScanning=true; bleStatus.textContent='Scanning...'; });
         if(bleScanStopBtn) bleScanStopBtn.addEventListener('click', async () => { if(!port)return; await writeSerial('ble scan stop'); isBleScanning=false; bleStatus.textContent='Stopped'; });
+
+        // ==========================================
+        // ADC Control Logic (v1.3.11)
+        // ==========================================
+        const btnReadNtc = document.getElementById('btnReadNtc');
+        const btnReadHwid = document.getElementById('btnReadHwid');
+
+        // Listeners
+        if (btnReadNtc) {
+            btnReadNtc.addEventListener('click', async () => {
+                if (!port) { alert('請先連線 Serial Port'); return; }
+                const pos = document.querySelector('input[name="ntcPos"]:checked').value;
+                const samples = document.getElementById('ntcSamples').value || 32;
+                const interval = document.getElementById('ntcInterval').value || 1;
+                const cmd = `fct-adc mlbntc ${pos} ${samples} ${interval}`;
+                await writeSerial(cmd);
+            });
+        }
+
+        if (btnReadHwid) {
+            btnReadHwid.addEventListener('click', async () => {
+                if (!port) { alert('請先連線 Serial Port'); return; }
+                await writeSerial('fct-adc hwid');
+            });
+        }
+
+        // Dummy function to prevent crash if user has call in read loop
+        function parseAdcResponse(line) {}
+
 </script>
 </body>
 </html>
