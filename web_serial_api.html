@@ -309,7 +309,7 @@
                                 <input type="number" id="ntcInterval" value="1" min="0" class="w-full p-2 border rounded text-sm">
                             </div>
                         </div>
-                        <button id="btnReadNtc" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                        <button id="btnReadNtc" disabled class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded shadow transition disabled:bg-gray-400">
                             讀取 NTC (Read)
                         </button>
                     </div>
@@ -317,7 +317,7 @@
                     <!-- HWID Control -->
                     <div class="border-t border-gray-200 pt-3">
                         <h3 class="text-md font-medium text-gray-700 mb-2">HWID 讀取</h3>
-                        <button id="btnReadHwid" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                        <button id="btnReadHwid" disabled class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded shadow transition disabled:bg-gray-400">
                             讀取 HWID
                         </button>
                     </div>
@@ -857,7 +857,7 @@
                 </div>
 
                                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                    
-                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.15 (Add ADC User Prompt)</span></p>
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.16 (Fix ADC Button State)</span></p>
                     <p class="text-xs">最後更新日期: 2025.12.22</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
@@ -1199,6 +1199,10 @@ const statusElement = document.getElementById('status');
             buzzerStopButton.disabled = true;
             readTempButton.disabled = true;
             readRHTButton.disabled = true;
+
+            // v1.3.16 Add ADC
+            if(document.getElementById('btnReadNtc')) document.getElementById('btnReadNtc').disabled = true;
+            if(document.getElementById('btnReadHwid')) document.getElementById('btnReadHwid').disabled = true;
             
             // Disable Backlight Controls
             blOnButton.disabled = true;
@@ -1280,6 +1284,10 @@ const statusElement = document.getElementById('status');
             buzzerStopButton.disabled = false;
             readTempButton.disabled = false;
             readRHTButton.disabled = false;
+
+             // v1.3.16 Add ADC
+            if(document.getElementById('btnReadNtc')) document.getElementById('btnReadNtc').disabled = false;
+            if(document.getElementById('btnReadHwid')) document.getElementById('btnReadHwid').disabled = false;
             
             // Enable Backlight Controls
             blOnButton.disabled = false;
