@@ -181,6 +181,24 @@
                         </button>
                     </div>
                 </div>
+                <div id="sectionCommandLine" class="p-4 border border-gray-200 rounded-lg space-y-3 bg-red-50">
+                <fieldset>
+                    <legend>批次指令發送 (batch mode. support txt file)</legend>
+                                        <div class="flex flex-col space-y-2 mt-2">
+                        <input type="file" id="fileInput" accept=".txt" class="text-xs">
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1">
+                                <label class="text-xs text-gray-700">間隔(ms):</label>
+                                <input type="number" id="batchInterval" value="100" min="0" class="w-16 p-1 border rounded text-xs text-center">
+                            </div>
+                            <button id="sendBtn" disabled class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded shadow disabled:bg-gray-400 transition text-xs">
+                                開始逐行發送
+                            </button>
+                        </div>
+                    </div>
+                    <div id="fileStatus" style="font-size: 0.8em; color: gray; margin-top: 5px;"></div>
+                </fieldset>
+                </div>
                 <div class="md:flex md:space-x-4">
                     
                     <div id="sectionTMR" class="w-full md:w-1/2 p-4 border border-gray-200 rounded-lg space-y-3 mb-4 md:mb-0">
@@ -979,10 +997,9 @@
                     </div>
                 </div>
 
-                                <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                                                    
-                                <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.22 (Add HVAC Power Control)</span></p>
-                                <p class="text-xs">最後更新日期: 2025.12.22</p>
-
+                <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                                                                                    
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.26 (Add Batch Interval)</span></p>
+                    <p class="text-xs">最後更新日期: 2025.12.29</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
                         <li>聯絡人: Neil Lai</li>
@@ -1327,6 +1344,9 @@ const statusElement = document.getElementById('status');
             // v1.3.16 Add ADC
             if(document.getElementById('btnReadNtc')) document.getElementById('btnReadNtc').disabled = true;
             if(document.getElementById('btnReadHwid')) document.getElementById('btnReadHwid').disabled = true;
+            // v1.3.25 Batch Send
+            if(document.getElementById('sendBtn')) document.getElementById('sendBtn').disabled = true;
+
             
             // v1.3.17 Add EEPROM
             if(btnReadEeprom) btnReadEeprom.disabled = true;
@@ -3138,6 +3158,73 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
 
         // Dummy function to prevent crash if user has call in read loop
         function parseAdcResponse(line) {}
+
+    // Batch mode send commands.
+    // 批次指令發送邏輯 (修正版 v1.3.24)
+    const batchSendBtn = document.getElementById('sendBtn');
+    if (batchSendBtn) {
+        batchSendBtn.addEventListener('click', async () => {
+            if (!port) {
+                alert('請先連線 Serial Port');
+                return;
+            }
+
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('fileStatus');
+        
+            if (!fileInput.files.length) {
+                alert("請先選擇一個 .txt 檔案");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const text = await file.text();
+            // 支援 Windows (CRLF) 與 Linux (LF) 換行，並過濾掉空行
+            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+            if (lines.length === 0) {
+                status.innerText = "檔案內容為空或無有效指令";
+                return;
+            }
+
+            status.innerText = `準備發送 ${lines.length} 行指令...`;
+            batchSendBtn.disabled = true; // 發送期間禁用按鈕
+
+            try {
+                for (let i = 0; i < lines.length; i++) {
+                    const command = lines[i];
+                    
+                    status.innerText = `正在發送 (${i + 1}/${lines.length}): ${command}`;
+                    
+                    // 使用標準的 writeSerial 函式發送
+                    await writeSerial(command);
+                
+                    // v1.3.26 讀取自訂間隔
+                    const intervalMs = parseInt(document.getElementById('batchInterval').value) || 100;
+                    await new Promise(resolve => setTimeout(resolve, intervalMs)); 
+                }
+                status.innerText = "發送完成！";
+            } catch (error) {
+                console.error(error);
+                status.innerText = `發送中斷: ${error.message || error}`;
+            } finally {
+                batchSendBtn.disabled = false; // 恢復按鈕
+            }
+        });
+    }
+
+    // 檔案選擇監聽 (v1.3.25)
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput && batchSendBtn) {
+        fileInput.addEventListener('change', () => {
+            // 只有在 "已連線" 且 "有檔案" 時才啟用按鈕
+            if (port && fileInput.files.length > 0) {
+                batchSendBtn.disabled = false;
+            } else {
+                batchSendBtn.disabled = true;
+            }
+        });
+    }
 
 </script>
 </body>
