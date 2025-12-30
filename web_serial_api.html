@@ -1763,6 +1763,8 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                                 if(/BLE.*up/i.test(cleanedLine) || (cleanedLine.includes('result = 0') && hasBleAck)) {
                                     isBleInitialized=true;
                                     if(bleStatus) { bleStatus.textContent='Initialized'; bleStatus.style.color='green'; }
+                                    //v1.3.28: 初始化成功，恢復介面操作
+                                    enableTmrStartControls();
                                     if(bleScanStartBtn) bleScanStartBtn.disabled=false;
                                 }
 
@@ -3016,9 +3018,38 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
         const bleInitBtn = document.getElementById('bleInitBtn');
         const bleScanStartBtn = document.getElementById('bleScanStartBtn');
         const bleScanStopBtn = document.getElementById('bleScanStopBtn');
-        if(bleInitBtn) bleInitBtn.addEventListener('click', async () => { if(!port)return; bleStatus.textContent='Init...'; isBleInitialized=false; hasBleAck=false; await writeSerial('ble init'); setTimeout(()=>{if(!isBleInitialized)bleStatus.textContent='Init Timeout'},30000); });
-        if(bleScanStartBtn) bleScanStartBtn.addEventListener('click', async () => { if(!port)return; document.getElementById('bleScanResults').value=''; await writeSerial('ble scan start'); isBleScanning=true; bleStatus.textContent='Scanning...'; });
-        if(bleScanStopBtn) bleScanStopBtn.addEventListener('click', async () => { if(!port)return; await writeSerial('ble scan stop'); isBleScanning=false; bleStatus.textContent='Stopped'; });
+        // v1.3.28 BLE Init Logic (Enhanced)
+        if(bleInitBtn) bleInitBtn.addEventListener('click', async () => { 
+            if(!port) return;
+            
+            // 1. 禁用所有功能防止干擾
+            disableAllControls(); 
+            // 保持 "初始化" 按鈕本身顯示狀態 (雖然 disableAllControls 已將其 disable，這樣剛好)
+            // 若希望至少能看到是正在處理中，可修改狀態文字
+            
+            bleStatus.textContent = 'Init... (Wait 30s max)';
+            bleStatus.style.color = 'orange';
+            isBleInitialized = false;
+            hasBleAck = false;
+            
+            await writeSerial('ble init'); 
+            
+            // 2. 設定超時處理 (30秒)
+            setTimeout(() => {
+                if(!isBleInitialized) {
+                    bleStatus.textContent = 'Init Timeout';
+                    bleStatus.style.color = 'red';
+                    // 超時後恢復控制
+                    enableTmrStartControls(); 
+                    alert('BLE 初始化逾時，請重試。');
+                }
+            }, 30000); 
+        });
+
+        if(bleScanStartBtn) 
+            bleScanStartBtn.addEventListener('click', async () => { if(!port)return; document.getElementById('bleScanResults').value=''; await writeSerial('ble scan start'); isBleScanning=true; bleStatus.textContent='Scanning...'; });
+        if(bleScanStopBtn) 
+            bleScanStopBtn.addEventListener('click', async () => { if(!port)return; await writeSerial('ble scan stop'); isBleScanning=false; bleStatus.textContent='Stopped'; });
 
         // ==========================================
         // ADC Control Logic (v1.3.11)
