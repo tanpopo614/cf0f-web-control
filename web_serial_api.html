@@ -578,7 +578,7 @@
                         </div>
                         
                         <div>
-                            <label for="blNitsInput" class="block text-xs font-medium text-gray-700 mb-1">亮度 Nits (0-1000)</label>
+                            <label for="blNitsInput" class="block text-xs font-medium text-gray-700 mb-1">光通量 Nits (0-1000)</label>
                             <div class="flex space-x-2">
                                 <input type="number" id="blNitsInput" value="500" min="0" max="1000" 
                                     class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
@@ -998,8 +998,8 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                                                                                    
-                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.27 (Fix BLE Button State)</span></p>
-                    <p class="text-xs">最後更新日期: 2025.12.30</p>
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.28 (Add Chinese/English switch)</span></p>
+                    <p class="text-xs">Last Updated: 2025.12.31</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
                         <li>聯絡人: Neil Lai</li>
@@ -1795,7 +1795,7 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                                     const ipMatch = normalizedText.match(/IP:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
                                     if (ipMatch) {
                                         const ipAddress = ipMatch[1];
-                                        showModal('連線成功', `已取得 IP 位址: ${ipAddress}`);
+                                        showModal('連線成功', `IP Address: ${ipAddress}`);
                                         const ipDisplay = document.getElementById('wifiIPAddress');
                                         if (ipDisplay) ipDisplay.textContent = ipAddress;
                                     }
@@ -2005,10 +2005,10 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                                          // 讓 Button 的邏輯去處理
                                     } else if (chargerSetMatch[1] === '0') {
                                         // 移除自動讀取充電器狀態的指令
-                                        logData('✅ 設定成功。', 'System');
+                                        logData('✅ 設定成功。Set Successfully.', 'System');
                                     } else {
-                                        showModal('❌ 設定失敗', `指令回傳錯誤碼: ${chargerSetMatch[1]}。`);
-                                        logData(`❌ 設定失敗: ${normalizedText}`, 'System');
+                                        showModal('❌ 設定失敗', `Error Code: ${chargerSetMatch[1]}。`);
+                                        logData(`❌ 設定失敗(Set failed): ${normalizedText}`, 'System');
                                     }
                                 }
                                 // --- END Battery Control Parsing Logic ---
@@ -2056,12 +2056,12 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                                 // Reset: 'Reset completed with error 0' means success
                                 if (normalizedText.includes('Reset completed with error')) {
                                     if (normalizedText.includes('error 0')) {
-                                        logData('✅ALS 重設結果: 重設成功 (error 0)', 'System');
-                                        showModal('✅ALS 重設結果: 重設成功 (error 0)');
+                                        logData('✅ALS 重設結果: 重設成功(Reset Successful)', 'System');
+                                        showModal('✅ALS 重設結果: 重設成功');                                    
                                     } else {
                                         // If it contains "Reset completed with error" but not "error 0", it's a failure.
-                                        logData(`ALS 重設結果: 重設失敗 (${normalizedText})`, 'System');
-                                        showModal('ALS 重設失敗', `ALS Reset 指令回傳錯誤: ${normalizedText}`);
+                                        logData(`ALS 重設結果: 重設失敗(Reset failed)`, 'System');
+                                        showModal('ALS 重設失敗', `ALS Reset 指令回傳錯誤`);
                                     }
                                 }
 
@@ -2233,7 +2233,7 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
             try {
                 port = await navigator.serial.requestPort();
                 updateStatus('正在連接...');
-                await port.open({ baudRate: 9600 }); 
+                await port.open({ baudRate: 115200 }); 
                 updateStatus('已連接到序列埠！', true);
                 readSerial();
                 
@@ -2254,7 +2254,7 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
                 if (error.name === 'NotFoundError') {
                     updateStatus('連接失敗：找不到任何設備或使用者取消了選擇。');
                 } else {
-                    updateStatus(`連接錯誤: ${error.message}`);
+                    updateStatus(`Error: ${error.message}`);
                 }
             }
         }
@@ -2444,7 +2444,7 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
             
             const size = parseInt(checkerSizeInput.value.trim());
             if (isNaN(size) || size <= 0) {
-                 showModal('輸入錯誤', '棋盤格大小 ($size$) 必須是有效的正整數 (e.g., 1-255)。');
+                 showModal('輸入錯誤', '棋盤格大小必須是有效的正整數 (e.g., 1-255)。');
                  return;
             }
             
@@ -3267,6 +3267,385 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
         });
     }
 
+</script>
+<!-- 自動中英文切換腳本 (Auto i18n with Live Watch) -->
+<script>
+(function() {
+    // 1. 擴充字典 (包含動態可能出現的狀態文字)
+    const dictionary = {
+        "CF0F FCT設備控制": "CF0F FCT Device Control",
+        "系統環境資訊 (SysEnv)": "System Env Info (SysEnv)",
+        "連線成功後會自動執行 `sysenv` 讀取並顯示結果。": "Auto executes `sysenv` and shows results after connection.",
+        "Command Line 模式": "Command Line Mode",
+        "TMR 讀取指令控制 (TMR)": "TMR Control (TMR)",
+        "即時數據 (timestamp ADC1 ADC2 sensr_d dial_d)": "Real-time Data (timestamp ADC1 ADC2 sensr_d dial_d)",
+        "Amber LED 控制": "Amber LED Control",
+        "Buzzer/蜂鳴器控制": "Buzzer Control",
+        "ADC 控制 (MLB NTC & HWID)": "ADC Control (MLB NTC & HWID)",
+        "MLB NTC 溫度/ADC 讀取": "MLB NTC Temp/ADC Read",
+        "HWID 讀取": "HWID Read",
+        "EEPROM 控制(寫入請直接使用CLI)": "EEPROM Control (Write via CLI)",
+        "Schumacher 控制 (HVAC)": "Schumacher Control (HVAC)",
+        "1. Reset (Deinit -> Init)": "1. Reset (Deinit -> Init)",
+        "Switch Control": "Switch Control",
+        "Register & Info": "Register & Info",
+        "SAPS Control": "SAPS Control",
+        "HVAC Power Test Load": "HVAC Power Test Load",
+        "RHT 溫濕度感測器讀取": "RHT Sensor Read",
+        "最新讀數:": "Latest Reading:",
+        "溫度:": "Temp:",
+        "濕度:": "Humidity:",
+        "雷達控制 (Radar)": "Radar Control",
+        "背光控制 (Backlight Control)": "Backlight Control",
+        "LCD 螢幕控制 (LCD Control)": "LCD Control",
+        "顏色/圖案指令": "Color/Pattern Commands",
+        "計算出的十六進制值:": "Calculated Hex:",
+        "Checkerboard 圖案": "Checkerboard Pattern",
+        "按鈕測試控制 (Button Control)": "Button Test Control",
+        "電池控制 (Battery Control)": "Battery Control",
+        "即時電壓/溫度/限制電流": "Voltage/Temp/Current Limit",
+        "電壓 (mV):": "Voltage (mV):",
+        "溫度 (°C):": "Temp (°C):",
+        "Input Limit (mA):": "Input Limit (mA):",
+        "充電狀態 (Charger):": "Charger State:",
+        "設定控制": "Settings Control",
+        "ALS 環境光感測器控制 (TCS3410)": "ALS Control (TCS3410)",
+        "讀取控制 (tcs3410 read)": "Read Control (tcs3410 read)",
+        "參數配置 (Gain/SampleTime/NrSamples)": "Config (Gain/SampleTime/NrSamples)",
+        "即時/最新 ALS 讀數 (Clear/R/G/B/WB)": "ALS Readings (Clear/R/G/B/WB)",
+        "Wi-Fi 連線控制 (Station Mode)": "Wi-Fi Control (Station Mode)",
+        "即時狀態": "Status",
+        "驅動狀態:": "Driver Status:",
+        "IP 地址:": "IP Address:",
+        "連接到 AP (sta connect)": "Connect to AP (sta connect)",
+        "Bluetooth (BLE) 控制": "Bluetooth (BLE) Control",
+        "接收到的資料紀錄": "Received Data Log",
+        "版本資訊:": "Version:",
+        "最後更新日期:": "Last Updated:",
+        "問題與支援聯絡方式:": "Support & Issues:",
+        "聯絡人:": "Contact:",
+        "電子郵件:": "Email:",
+        "Google Chat:": "Google Chat:",
+        "開啟 (fct-led amber on)": "On (fct-led amber on)",
+        "關閉 (fct-led amber off)": "Off (fct-led amber off)",
+        "啟動 (fct-piezo start)": "Start (fct-piezo start)",
+        "停止 (fct-piezo stop)": "Stop (fct-piezo stop)",
+        "讀取 NTC (Read)": "Read NTC",
+        "讀取 HWID": "Read HWID",
+        "讀取 BP EEPROM": "Read BP EEPROM",
+        "讀取溫度": "Read Temp",
+        "讀取溫濕度 (rht 1 read rht)": "Read RHT",
+        "開啟 (fct-bl start)": "Start (fct-bl start)",
+        "關閉 (fct-bl stop)": "Stop (fct-bl stop)",
+        "啟動 (lcd start)": "Start (lcd start)",
+        "停止 (lcd stop)": "Stop (lcd stop)",
+        "暫停 (lcd suspend)": "Suspend (lcd suspend)",
+        "恢復 (lcd resume)": "Resume (lcd resume)",
+        "顏色條 (lcd color_bar)": "Color Bar (lcd color_bar)",
+        "填滿顏色 (lcd fill)": "Fill Color (lcd fill)",
+        "十字線 (lcd crosshair)": "Crosshair (lcd crosshair)",
+        "繪製棋盤格 (lcd checker)": "Draw Checker (lcd checker)",
+        "1. 開始記錄 (fct-button start-record)": "1. Start Record",
+        "2. 停止/讀取 (fct-button stop-record)": "2. Stop/Read",
+        "讀取電壓": "Read Voltage",
+        "讀取限制電流": "Read Limit",
+        "設定 Input Current Limit (0-100 mA)": "Set Input Limit (0-100 mA)",
+        "充電開啟 (Enable)": "Enable Charge",
+        "充電關閉 (Disable)": "Disable Charge",
+        "偵測 (tcs3410 detect)": "Detect (tcs3410 detect)",
+        "重設 (tcs3410 reset)": "Reset (tcs3410 reset)",
+        "開始讀取": "Start Reading",
+        "檢查狀態 (sta state)": "Check State (sta state)",
+        "啟動驅動 (sta init)": "Init Driver (sta init)",
+        "掃描 AP (sta scan)": "Scan AP (sta scan)",
+        "斷開連線 (sta disconnect)": "Disconnect (sta disconnect)",
+        "連線 (sta connect)": "Connect (sta connect)",
+        "連接序列埠 (COM Port)": "Connect Serial (COM Port)",
+        "清除紀錄": "Clear Log",
+        "儲存紀錄 (.txt)": "Save Log (.txt)",
+        "發送指令 (Enter)": "Send (Enter)",
+        "批次指令發送 (batch mode. support txt file)": "Batch Send (supports txt)",
+        "主控台": "Console",
+        "快速導航": "Quick Nav",
+        "取樣間隔 (us)": "Sample Interval (us)",
+        "取樣數量 (0=無限)": "Number of Samples (0=∞)",
+        "頻率 (Hz)": "Frequency (Hz)",
+        "電池": "Battery",
+        "背光": "Backlight",
+        "按鈕": "Button",
+        "紀錄": "Log",
+        "錯誤": "Error",
+        "最後更新日期": "Last Updated",
+        "問題與支援聯絡方式": "Support & Issues",
+        "電子郵件": "Email",
+        "Google Chat": "Google Chat",
+        "聯絡人: Neil Lai": "Contact: Neil Lai",
+        "選擇檔案": "Choose File",
+        "未選擇任何檔案": "No file chosen",
+        "狀態：尚未連接。請注意，此功能需在 Chrome/Edge 瀏覽器中執行。": "Status: Not connected. Note: This feature requires Chrome/Edge browser.",
+        "等待連接...": " Waiting for connection...",
+        "連線中...": "Connecting...",
+        "已連線到": "Connected to",
+        "連線失敗，請重試。": "Connection failed, please try again.",
+        "已斷開連線。": "Disconnected.",
+        "讀取中...": "Reading...",
+        "讀取完成。": "Read complete.",
+        "發生錯誤:": "Error occurred:",
+        "您的瀏覽器不支援 Web Serial API。": "Your browser does not support the Web Serial API.",
+        "輸入FCT指令 (? or help查看)": "Enter FCT command (? or help for list)",
+        "接收到的資料紀錄": "Received Data Log",
+        "讀取溫度 (rht 0 read t)": "Read Temp (rht 0 read t)",
+        "讀取溫濕度 (rht 1 read rht)": "Read RHT (rht 1 read rht)",
+        "偵測狀態": "Check Status",
+        "驅動狀態": "Driver Status",
+        "IP地址": "IP Address",
+        "溫度 (°C)": "Temp (°C)",
+        "濕度 (%)": "Humidity (%)",
+        "偵測 (detect)": "Detect",
+        "偵測 (Detect)": "Detect",
+        "重設 (reset)": "Reset",
+        "開始讀取 (start-read)": "Start Read",
+        "停止讀取 (stop-read)": "Stop Read",
+        "開啟 (Open)": "Open",
+        "關閉 (Close)": "Close",
+        "讀取 (Read)": "Read",
+        "設定 (Set)": "Set",
+        "啟用 (Enable)": "Enable",
+        "停用 (Disable)": "Disable",
+        "讀取功率 (Tx)": "Read Power (Tx)",
+        "亮度": "Brightness",
+        "光通量 (Nits)": "Nits",
+        "當前百分比 (%)": "Current Percent (%)",
+        "設定亮度 (0-100)": "Set Brightness (0-100)",
+        "設定光通量 (Nits)": "Set Nits",
+        "設定當前百分比 (0-100)": "Set Current Percent (0-100)",
+        "檢查器尺寸 (Checker Size)": "Checker Size",
+        "增益 (Gain)": "Gain",
+        "取樣時間 (Sample Time)": "Sample Time",
+        "取樣數量 (Nr Samples)": "Nr Samples",
+        "亮度 (0-255)": "Brightness (0-255)",
+        "光通量 Nits (0-1000)": "Nits (0-1000)",
+        "電流百分比 (0-100%)": "Current Percent (0-100%)",
+        "電池電壓 (mV)": "Battery Voltage (mV)",
+        "電池溫度 (°C)": "Battery Temp (°C)",
+        "限制電流 (mA)": "Limit Current (mA)",
+        "設定限制電流 (0-100 mA)": "Set Limit Current (0-100 mA)",
+        "Wi-Fi SSID": "Wi-Fi SSID",
+        "Wi-Fi 密碼": "Wi-Fi Password",
+        "選擇檔案 (.txt)": "Choose File (.txt)",
+        "棋盤格大小 (size)": "Checker Size",
+        "按鈕循環次數 (Button Cycles):": "Button Cycles",
+        "按鈕按下時間 (ms) (Button Press Time (ms)):": "Button Press Time (ms)",
+        "按鈕釋放時間 (ms) (Button Release Time (ms)):": "Button Release Time (ms)",
+        "設定電流": "Set Current",
+        "取樣數量 (預設 1, 必須 >= 1)": "Number of Samples (default 1, must be >= 1)",
+        "增益 (Gain) (預設 128)": "Gain (default 128)",
+        "取樣時間 (SampleTime) (預設 900)": "Sample Time (default 900)",
+        "取樣次數 (NrSamples) (預設 400)": "Nr Samples (default 400)",
+        "設定": "Set",
+        "當前配置:": "Current Config:",
+        "清除": "Clear",
+        "儲存 (.txt)": "Save (.txt)",
+        "手動輸入或掃描後選擇": "Manually enter or select after scan",
+        "輸入密碼": "Enter Password",
+        "BLE 狀態": "BLE Status",
+        "初始化 (Init)": "Init",
+        "掃描開始": "Start Scan",
+        "掃描停止": "Stop Scan",
+        "掃描結果 (Scan Results)": "Scan Results",
+        "掃描結果將顯示於此...": "Scan results will be shown here...",
+        "連接失敗：找不到任何設備或使用者取消了選擇。": "Connection failed: No device found or user cancelled the selection.",
+        "狀態：已連接到序列埠！": "Status: Connected to serial port!",
+        "已連接 (點擊斷開)": "Connected (Click to Disconnect)",
+        "無法讀取，請確認 BP 已連接": "Unable to read, please ensure BP is connected",
+        "狀態：已成功斷開連線。": "Status: Successfully disconnected.",
+        "讀取 BP EEPROM 中...": "Reading BP EEPROM...",
+        "讀取完成，顯示於上方紀錄視窗。": "Read complete, displayed in the log window above.",
+        "讀取 EEPROM 時發生錯誤:": "Error occurred while reading EEPROM:",
+        "間隔(ms):": "Interval (ms):",
+        "開始逐行發送": "Start Batch Send",
+        "中斷 (Ctrl-C)": "Abort (Ctrl-C)",
+        "設定成功": "Set Successfully",
+        "未初始化": "Not Initialized",
+        "初始化完成": "Initialization Complete",
+        "掃描中...": "Scanning...",
+        "已停止": "Stopped",
+        "狀態：您的瀏覽器不支援 Web Serial API。": "Status: Your browser does not support the Web Serial API.",
+        "Wi-Fi 驅動尚未初始化，無法掃描。請先執行 sta init。": "Wi-Fi driver not initialized, unable to scan. Please run sta init first.",
+        "掃描完成，請查看下拉選單選擇 SSID。": "Scan complete, please check the dropdown to select SSID.",
+        "連線成功！": "Connection successful!",
+        "連線失敗，請檢查 SSID 與密碼後重試。": "Connection failed, please check SSID and password and try again.",
+        "❌ 設定失敗": "❌ Set Failed",
+        "--- 無效顏色 ---": "--- Invalid Color ---",
+        "輸入錯誤": "Input Error",
+        "請檢查 R、G、B 顏色輸入欄位，確保值在 0 到 255 之間。": "Please check the R, G, B color input fields to ensure values are between 0 and 255.",
+        "棋盤格大小必須是有效的正整數 (e.g., 1-255)。": "Checkerboard size must be a valid positive integer (e.g., 1-255).",
+        "範圍錯誤：設定增益": "Range Error: Set Gain",
+        "✅ALS 重設結果: 重設成功": "✅ALS Reset Result: Reset Successful",
+        "❌ALS 重設結果: 重設失敗": "❌ALS Reset Result: Reset Failed",
+        "✅ ALS 偵測成功": "✅ ALS Detection Successful",
+        "TCS3410 環境光感測器已成功偵測到。": "TCS3410 ambient light sensor successfully detected.",
+    };
+
+        // 2. 【新增】正則表達式字典 (專門處理有變數的句子)
+    // pattern: 抓取規則 (使用 (.*) 代表變數部分)
+    // replacement: 英文翻譯 ($1 代表第一個變數, $2 代表第二個...)
+    const regexDictionary = [
+        {
+            // 處理: 亮度值 (XXX) 輸入無效...
+            pattern: /^亮度值 \((.*)\) 輸入無效或超出範圍。請輸入 (.*) 到 (.*) 之間的整數。$/,
+            replacement: "Brightness value ($1) invalid. Please enter int between $2 and $3."
+        },
+        {
+            // 處理: Nits 值 (XXX) 輸入無效...
+            pattern: /^Nits 值 \((.*)\) 輸入無效或超出範圍。請輸入 (.*) 到 (.*) 之間的整數。$/,
+            replacement: "Nits value ($1) invalid. Please enter int between $2 and $3."
+        },
+        {
+            pattern: /^電流百分比 \((.*)\) 輸入無效或超出範圍。請輸入 (.*) 到 (.*) 之間的整數。$/,
+            replacement: "Current percentage ($1) invalid. Please enter int between $2 and $3."
+        },
+        {
+            pattern: /^增益值 \((.*)\) 輸入無效。請輸入以下其中一個值：1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096。$/,
+            replacement: "Gain value ($1) invalid. Please enter one of the following values: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, or 4096."
+        },
+        {
+            // 處理通用: 範圍錯誤：設定 XXX
+            pattern: /^範圍錯誤：(.*)$/,
+            replacement: "Range Error: $1"
+        },
+        {
+            // 處理: 已取得 IP 位址: XXX
+            pattern: /^已取得 IP 位址: (.*)$/,
+            replacement: "IP Acquired: $1"
+        }
+    ];
+
+    let currentLang = localStorage.getItem('auto_i18n_pref') || 'zh';
+
+    // 3. UI 介面
+    const switcherDiv = document.createElement('div');
+    switcherDiv.style.cssText = "position: fixed; top: 10px; right: 20px; z-index: 99999; background: white; padding: 5px 10px; border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-family: sans-serif; font-size: 14px;";
+    switcherDiv.innerHTML = `
+        <label style="margin-right:5px; font-weight:bold;">Language:</label>
+        <select id="autoLangSwitcher" style="padding: 2px;">
+            <option value="zh">中文 (Chinese)</option>
+            <option value="en">English</option>
+        </select>
+    `;
+    document.body.appendChild(switcherDiv);
+
+    // 4. 翻譯核心邏輯
+    function translateNode(node) {
+        if (!node.nodeValue) return;
+        const text = node.nodeValue.trim();
+        if (!text) return;
+
+        if (!node._originalText) node._originalText = node.nodeValue;
+
+        if (currentLang === 'en') {
+            // A. 先試靜態字典
+            let translated = dictionary[text];
+
+            // B. 如果沒翻到，試試看正則字典 (Regex)
+            if (!translated) {
+                for (const rule of regexDictionary) {
+                    const match = text.match(rule.pattern);
+                    if (match) {
+                        // 找到符合的規則，把變數 ($1, $2...) 填回去
+                        translated = rule.replacement;
+                        // 從 1 開始，因為 match[0] 是整句
+                        for (let i = 1; i < match.length; i++) {
+                            translated = translated.replace('$' + i, match[i]);
+                        }
+                        break; // 找到就停
+                    }
+                }
+            }
+
+            // C. 寫入結果
+            if (translated && node.nodeValue !== translated) {
+                node.nodeValue = node.nodeValue.replace(text, translated);
+            }
+        } else {
+            // 恢復中文
+            if (node._originalText && node.nodeValue !== node._originalText) {
+                node.nodeValue = node._originalText;
+            }
+        }
+    }
+
+    // 5. 遍歷 DOM
+    function traverseAndTranslate(root) {
+        const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while(node = walk.nextNode()) {
+            if (node.parentNode.tagName !== 'SCRIPT' && node.parentNode.tagName !== 'STYLE') {
+                translateNode(node);
+            }
+        }
+        // Placeholder 處理
+        const inputs = root.querySelectorAll ? root.querySelectorAll('input, textarea') : [];
+        inputs.forEach(input => {
+            if (!input.dataset.originalPlaceholder) input.dataset.originalPlaceholder = input.placeholder;
+            let pText = input.dataset.originalPlaceholder;
+            
+            if (currentLang === 'en') {
+                if(dictionary[pText]) {
+                    input.placeholder = dictionary[pText];
+                } else {
+                    // Placeholder 也要支援 Regex
+                     for (const rule of regexDictionary) {
+                        const match = pText.match(rule.pattern);
+                        if (match) {
+                            let trans = rule.replacement;
+                            for (let i = 1; i < match.length; i++) trans = trans.replace('$' + i, match[i]);
+                            input.placeholder = trans;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                input.placeholder = pText;
+            }
+        });
+    }
+
+    // 6. 監聽器 (即時翻譯)
+    const observer = new MutationObserver((mutations) => {
+        observer.disconnect();
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) translateNode(node);
+                    else if (node.nodeType === Node.ELEMENT_NODE) traverseAndTranslate(node);
+                });
+            } else if (mutation.type === 'characterData') {
+                translateNode(mutation.target);
+            }
+        });
+        startObserver();
+    });
+
+    function startObserver() {
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+
+    // 7. 啟動
+    const switcher = document.getElementById('autoLangSwitcher');
+    switcher.value = currentLang;
+    traverseAndTranslate(document.body);
+    startObserver();
+
+    switcher.addEventListener('change', (e) => {
+        currentLang = e.target.value;
+        localStorage.setItem('auto_i18n_pref', currentLang);
+        observer.disconnect();
+        traverseAndTranslate(document.body);
+        startObserver();
+    });
+
+})();
 </script>
 </body>
 </html>
