@@ -998,8 +998,8 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                                                                                    
-                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.28 (Add Chinese/English switch)</span></p>
-                    <p class="text-xs">Last Updated: 2025.12.31</p>
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.29 (Add Delay command in batch mode.)</span></p>
+                    <p class="text-xs">Last Updated: 2026.01.06</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
                         <li>聯絡人: Neil Lai</li>
@@ -3232,18 +3232,31 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
             batchSendBtn.disabled = true; // 發送期間禁用按鈕
 
             try {
-                for (let i = 0; i < lines.length; i++) {
-                    const command = lines[i];
-                    
-                    status.innerText = `正在發送 (${i + 1}/${lines.length}): ${command}`;
-                    
-                    // 使用標準的 writeSerial 函式發送
+                 for (let i = 0; i < lines.length; i++) {
+                    const command = lines[i].trim();
+                    if (!command) continue; // 跳過空行
+
+                    // 檢查是否為延遲指令 (格式: DELAY 1000)
+                    // 支援大小寫，例如: delay 500, DELAY 1000
+                    const delayMatch = command.match(/^DELAY\s+(\d+)/i);
+
+                    if (delayMatch) {
+                        const delayTime = parseInt(delayMatch[1], 10);
+                        status.innerText = `(${i + 1}/${lines.length}) 等待: ${delayTime}ms...`;
+                        // 執行延遲
+                        await new Promise(resolve => setTimeout(resolve, delayTime));
+                    } else {
+                    // 正常的指令發送
+                    status.innerText = `(${i + 1}/${lines.length}) 發送: ${command}`;
                     await writeSerial(command);
                 
-                    // v1.3.26 讀取自訂間隔
+                    // 發送後的基本間隔 (原本的功能)
                     const intervalMs = parseInt(document.getElementById('batchInterval').value) || 100;
-                    await new Promise(resolve => setTimeout(resolve, intervalMs)); 
+                    if (intervalMs > 0) {
+                        await new Promise(resolve => setTimeout(resolve, intervalMs));
+                    }
                 }
+            }
                 status.innerText = "發送完成！";
             } catch (error) {
                 console.error(error);
