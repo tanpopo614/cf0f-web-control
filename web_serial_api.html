@@ -790,7 +790,22 @@
                         </div>
                         </div>
 
+                    
                     <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
+                        <h3 class="text-md font-medium text-gray-700 border-b pb-1">Millilux 讀取 (als 0 read)</h3>
+                        <div class="flex space-x-3 items-center">
+                            <button id="alsMilliluxButton" disabled class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                                讀取 Millilux
+                            </button>
+                            <div class="text-sm bg-gray-50 px-3 py-2 rounded border">
+                                <span class="text-gray-600">數值: </span>
+                                <span id="alsMilliluxValue" class="font-mono font-bold text-blue-700 text-lg">--</span>
+                                <span class="text-gray-500 text-xs"> mlux</span>
+                            </div>
+                        </div>
+                    </div>
+
+<div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
                         <h3 class="text-md font-medium text-gray-700 border-b pb-1">參數配置 (Gain/SampleTime/NrSamples)</h3>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -999,8 +1014,8 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                                                                                    
-                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.30 (Update Wi-Fi security type.)</span></p>
-                    <p class="text-xs">Last Updated: 2026.01.06</p>
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.31 (Add ALS millilux read.)</span></p>
+                    <p class="text-xs">Last Updated: 2026.01.19</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
                         <li>聯絡人: Neil Lai</li>
@@ -1402,7 +1417,7 @@ const statusElement = document.getElementById('status');
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = false;
-            alsReadButton.disabled = true;
+            alsReadButton.disabled = true; if(document.getElementById('alsMilliluxButton')) document.getElementById('alsMilliluxButton').disabled = true;
             alsGainInput.disabled = false;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = false;
@@ -1506,7 +1521,7 @@ const statusElement = document.getElementById('status');
             alsDetectButton.disabled = false;
             alsResetButton.disabled = false;
             alsReadSamplesInput.disabled = false;
-            alsReadButton.disabled = false;
+            alsReadButton.disabled = false; if(document.getElementById('alsMilliluxButton')) document.getElementById('alsMilliluxButton').disabled = false;
             alsGainInput.disabled = false;
             setGainButton.disabled = false;
             alsSampleTimeInput.disabled = false;
@@ -1585,7 +1600,7 @@ const statusElement = document.getElementById('status');
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = true;
-            alsReadButton.disabled = true;
+            alsReadButton.disabled = true; if(document.getElementById('alsMilliluxButton')) document.getElementById('alsMilliluxButton').disabled = true;
             alsGainInput.disabled = true;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = true;
@@ -1717,6 +1732,17 @@ const statusElement = document.getElementById('status');
 
                         while ((lineEndIndex = lineBuffer.indexOf('\n')) !== -1) {
                             let rawLine = lineBuffer.substring(0, lineEndIndex);
+                            // [New] Millilux Parser
+                            const lineForMillilux = rawLine.trim();
+                            if (lineForMillilux.toLowerCase().includes('millilux') || lineForMillilux.includes('als 0 read')) {
+                                const match = lineForMillilux.match(/([\d\.]+)/);
+                                if (match) {
+                                    const val = match[1];
+                                    const el = document.getElementById('alsMilliluxValue');
+                                    if(el) el.innerText = val;
+                                }
+                            }
+
                             lineBuffer = lineBuffer.substring(lineEndIndex + 1);
                             
                             const cleanedLine = rawLine.replace(/\r/g, '');
@@ -3287,6 +3313,9 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
 (function() {
     // 1. 擴充字典 (包含動態可能出現的狀態文字)
     const dictionary = {
+        "Millilux 讀取 (als 0 read)": "Read Millilux (als 0 read)",
+        "讀取 Millilux": "Read Millilux",
+        "數值:": "Value:",
         "CF0F FCT設備控制": "CF0F FCT Device Control",
         "系統環境資訊 (SysEnv)": "System Env Info (SysEnv)",
         "連線成功後會自動執行 `sysenv` 讀取並顯示結果。": "Auto executes `sysenv` and shows results after connection.",
@@ -3660,6 +3689,17 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
     });
 
 })();
+
+    // [New] Millilux Button Listener
+    (function(){
+        const btn = document.getElementById('alsMilliluxButton');
+        if (btn) {
+            btn.addEventListener('click', async () => {
+                if (!port) return;
+                await writeSerial('als 0 read');
+            });
+        }
+    })();
 </script>
 </body>
 </html>
