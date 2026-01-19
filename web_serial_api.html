@@ -427,7 +427,27 @@
                             <button onclick="writeSerial('hvac lt-saps off')" disabled class="bg-gray-600 text-white text-xs px-2 py-1 rounded disabled:bg-gray-400">Off</button>
                         </div>
                     </div>
-                </div>
+                
+                    <!-- 5. PowerCal Control (New) -->
+                    <div class="bg-white p-3 rounded border border-orange-200 mt-2">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">PowerCal Control</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="writeSerial('powercal lt-saps Y1')" disabled class="custom-serial-btn bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-2 rounded disabled:bg-gray-400">
+                                Y-LT-SAPS (Y1)
+                            </button>
+                            <button onclick="writeSerial('powercal saps Y1')" disabled class="custom-serial-btn bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-2 rounded disabled:bg-gray-400">
+                                Y-SAPS (Y1)
+                            </button>
+                            <button onclick="writeSerial('powercal laps Y1')" disabled class="custom-serial-btn bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-2 rounded disabled:bg-gray-400">
+                                Y-LAPS (Y1)
+                            </button>
+                            <button onclick="writeSerial('powercal laps W1')" disabled class="custom-serial-btn bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-2 rounded disabled:bg-gray-400">
+                                W-LAPS (W1)
+                            </button>
+                        </div>
+                    </div>
+
+</div>
 
                 <!-- HVAC Power Load Control Section (New v1.3.22) -->
                 <div id="sectionHvacPwr" class="p-4 border border-gray-200 rounded-lg space-y-4 bg-orange-100 mb-4">
@@ -794,7 +814,7 @@
                     <div class="space-y-3 p-3 border border-purple-200 rounded-lg bg-white shadow-inner">
                         <h3 class="text-md font-medium text-gray-700 border-b pb-1">Millilux 讀取 (als 0 read)</h3>
                         <div class="flex space-x-3 items-center">
-                            <button id="alsMilliluxButton" disabled class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
+                            <button id="alsMilliluxButton" disabled class="custom-serial-btn bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300 disabled:bg-gray-400 shadow-md">
                                 讀取 Millilux
                             </button>
                             <div class="text-sm bg-gray-50 px-3 py-2 rounded border">
@@ -1014,8 +1034,8 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-300 text-sm text-gray-600 lg:p-4 bg-white rounded-xl shadow-xl">                                                                                    
-                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.31 (Add ALS millilux read.)</span></p>
-                    <p class="text-xs">Last Updated: 2026.01.19</p>
+                    <p class="font-semibold text-gray-700">版本資訊: <span class="text-indigo-600 font-bold">v1.3.32 (Add PowerCal Control.)</span></p>
+                    <p class="text-xs">Last Updated: 2026.01.06</p>
                     <p class="font-semibold text-gray-700 mb-1">問題與支援聯絡方式:</p>
                     <ul class="list-disc list-inside space-y-0.5 ml-2 text-xs">
                         <li>聯絡人: Neil Lai</li>
@@ -1417,7 +1437,7 @@ const statusElement = document.getElementById('status');
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = false;
-            alsReadButton.disabled = true; if(document.getElementById('alsMilliluxButton')) document.getElementById('alsMilliluxButton').disabled = true;
+            alsReadButton.disabled = true; document.querySelectorAll('.custom-serial-btn').forEach(b => b.disabled = true);
             alsGainInput.disabled = false;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = false;
@@ -1521,7 +1541,7 @@ const statusElement = document.getElementById('status');
             alsDetectButton.disabled = false;
             alsResetButton.disabled = false;
             alsReadSamplesInput.disabled = false;
-            alsReadButton.disabled = false; if(document.getElementById('alsMilliluxButton')) document.getElementById('alsMilliluxButton').disabled = false;
+            alsReadButton.disabled = false; document.querySelectorAll('.custom-serial-btn').forEach(b => b.disabled = false);
             alsGainInput.disabled = false;
             setGainButton.disabled = false;
             alsSampleTimeInput.disabled = false;
@@ -1600,7 +1620,7 @@ const statusElement = document.getElementById('status');
             alsDetectButton.disabled = true;
             alsResetButton.disabled = true;
             alsReadSamplesInput.disabled = true;
-            alsReadButton.disabled = true; if(document.getElementById('alsMilliluxButton')) document.getElementById('alsMilliluxButton').disabled = true;
+            alsReadButton.disabled = true; document.querySelectorAll('.custom-serial-btn').forEach(b => b.disabled = true);
             alsGainInput.disabled = true;
             setGainButton.disabled = true;
             alsSampleTimeInput.disabled = true;
@@ -1733,15 +1753,17 @@ const statusElement = document.getElementById('status');
                         while ((lineEndIndex = lineBuffer.indexOf('\n')) !== -1) {
                             let rawLine = lineBuffer.substring(0, lineEndIndex);
                             // [New] Millilux Parser
-                            const lineForMillilux = rawLine.trim();
-                            if (lineForMillilux.toLowerCase().includes('millilux') || lineForMillilux.includes('als 0 read')) {
-                                const match = lineForMillilux.match(/([\d\.]+)/);
-                                if (match) {
-                                    const val = match[1];
-                                    const el = document.getElementById('alsMilliluxValue');
-                                    if(el) el.innerText = val;
+                            try {
+                                const lineForMillilux = rawLine.trim();
+                                if (lineForMillilux.toLowerCase().includes('millilux') || lineForMillilux.includes('als 0 read')) {
+                                    const match = lineForMillilux.match(/([\d\.]+)/);
+                                    if (match) {
+                                        const val = match[1];
+                                        const el = document.getElementById('alsMilliluxValue');
+                                        if(el) el.innerText = val;
+                                    }
                                 }
-                            }
+                            } catch(e) { console.error('Parse error', e); }
 
                             lineBuffer = lineBuffer.substring(lineEndIndex + 1);
                             
@@ -3316,6 +3338,11 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
         "Millilux 讀取 (als 0 read)": "Read Millilux (als 0 read)",
         "讀取 Millilux": "Read Millilux",
         "數值:": "Value:",
+        "PowerCal Control": "PowerCal Control",
+        "Y-LT-SAPS (Y1)": "Y-LT-SAPS (Y1)",
+        "Y-SAPS (Y1)": "Y-SAPS (Y1)",
+        "Y-LAPS (Y1)": "Y-LAPS (Y1)",
+        "W-LAPS (W1)": "W-LAPS (W1)",
         "CF0F FCT設備控制": "CF0F FCT Device Control",
         "系統環境資訊 (SysEnv)": "System Env Info (SysEnv)",
         "連線成功後會自動執行 `sysenv` 讀取並顯示結果。": "Auto executes `sysenv` and shows results after connection.",
@@ -3690,13 +3717,18 @@ if(cleanedLine.includes('ACK: ble')) hasBleAck=true;
 
 })();
 
-    // [New] Millilux Button Listener
+    // [New] Millilux Listener
     (function(){
         const btn = document.getElementById('alsMilliluxButton');
         if (btn) {
             btn.addEventListener('click', async () => {
-                if (!port) return;
-                await writeSerial('als 0 read');
+                if (window.port && window.port.writable) { // Check port validity
+                     await writeSerial('als 0 read');
+                } else if (typeof port !== 'undefined' && port) {
+                     await writeSerial('als 0 read');
+                } else {
+                    alert('Serial port not connected');
+                }
             });
         }
     })();
